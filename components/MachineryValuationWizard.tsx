@@ -526,11 +526,7 @@ function MachineryValuationWizardInner() {
                     </div>
 
                     {/* Divider */}
-                    <div className="border-t border-orange-100 pt-1">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                        Condition (optional — improves accuracy)
-                      </p>
-                    </div>
+                    
 
                     {/* RUNNING HOURS */}
                     <div>
