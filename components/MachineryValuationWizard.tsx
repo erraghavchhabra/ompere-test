@@ -17,8 +17,17 @@ interface PriceResult {
   hours_factor?: number | null;
   engine_factor?: number | null;
   estimated_price?: number | string | null;
-  hours_band_index?: number | null;  // null=not selected, -1=don't know, 0-7=band
+  hours_band_index?: number | null;
   message?: string;
+}
+
+// ── Factor row shown in the breakdown panel ───────────────────────────────────
+interface FactorRow {
+  label: string;
+  maxVal: number;
+  minVal: number;
+  selected: boolean;
+  color: string; // tailwind text color class
 }
 
 // ─── Inner component ──────────────────────────────────────────────────────────
@@ -28,30 +37,22 @@ function MachineryValuationWizardInner() {
   const [uploadedImages, setUploadedImages]     = useState<File[]>([]);
   const [uploadedPreviews, setUploadedPreviews] = useState<string[]>([]);
 
-  // ── machine_type always = 1, never shown ─────────────────────────────────
   const MACHINE_TYPE_ID = "1";
 
   const nameFromUrl  = searchParams.get("name")  ?? "";
   const phoneFromUrl = searchParams.get("phone") ?? "";
 
-  // Step 1 — pre-filled from URL (canopy removed)
   const [selectedBrand,    setSelectedBrand]    = useState(searchParams.get("brand_id")     ?? "");
   const [selectedCapacity, setSelectedCapacity] = useState(searchParams.get("capacity_kva") ?? "");
   const [selectedYear,     setSelectedYear]     = useState(searchParams.get("year")         ?? "");
-
-  // Step 2
   const [selectedHours,           setSelectedHours]           = useState("");
   const [selectedEngineCondition, setSelectedEngineCondition] = useState("");
 
-  // ── Dropdown data ─────────────────────────────────────────────────────────
   const [brands,          setBrands]          = useState<Brand[]>([]);
   const [capacityOptions, setCapacityOptions] = useState<Capacity[]>([]);
-
-  // ── Loading flags ─────────────────────────────────────────────────────────
   const [loadingBrands,   setLoadingBrands]   = useState(true);
   const [loadingCapacity, setLoadingCapacity] = useState(false);
 
-  // ── Calculate / submit state ──────────────────────────────────────────────
   const [calculating,   setCalculating]   = useState(false);
   const [priceResult,   setPriceResult]   = useState<PriceResult | null>(null);
   const [calcError,     setCalcError]     = useState<string | null>(null);
@@ -64,7 +65,6 @@ function MachineryValuationWizardInner() {
     (_, i) => `${2000 + i}`
   ).reverse();
 
-  // ── 1. Fetch brands once ──────────────────────────────────────────────────
   useEffect(() => {
     setLoadingBrands(true);
     fetch(API.brands)
@@ -74,15 +74,13 @@ function MachineryValuationWizardInner() {
       .finally(() => setLoadingBrands(false));
   }, []);
 
-  // ── 2. When brand pre-filled from URL, load its capacities directly ───────
   useEffect(() => {
     const brandId = searchParams.get("brand_id");
     if (!brandId || loadingBrands) return;
     fetchCapacities(brandId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingBrands]);
 
-  // ── 3. Auto-calculate when brand + capacity come from URL ─────────────────
   useEffect(() => {
     const brandId     = searchParams.get("brand_id");
     const capacityKva = searchParams.get("capacity_kva");
@@ -90,10 +88,9 @@ function MachineryValuationWizardInner() {
     if (!loadingBrands && brandId && capacityKva) {
       autoCalculate(brandId, capacityKva, year ?? undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingBrands]);
 
-  // ── Fetch helpers ─────────────────────────────────────────────────────────
   const fetchCapacities = async (brandId: string) => {
     setLoadingCapacity(true);
     setCapacityOptions([]);
@@ -108,7 +105,6 @@ function MachineryValuationWizardInner() {
     }
   };
 
-  // ── Dropdown handlers ─────────────────────────────────────────────────────
   const handleBrandChange = (brandId: string) => {
     setSelectedBrand(brandId);
     setSelectedCapacity("");
@@ -116,7 +112,6 @@ function MachineryValuationWizardInner() {
     if (brandId) fetchCapacities(brandId);
   };
 
-  // ── Auto-calculate (from URL params) ─────────────────────────────────────
   const autoCalculate = async (brand_id: string, capacity_kva: string, make_year?: string) => {
     setCalculating(true);
     try {
@@ -136,7 +131,6 @@ function MachineryValuationWizardInner() {
     }
   };
 
-  // ── Format currency ───────────────────────────────────────────────────────
   const formatCurrency = (value: number | string | null | undefined) => {
     if (value === null || value === undefined) return "₹0";
     const num = typeof value === "string" ? parseFloat(value) : value;
@@ -144,7 +138,10 @@ function MachineryValuationWizardInner() {
     return `₹${num.toLocaleString("en-IN")}`;
   };
 
-  // ── Step 1 → Next ─────────────────────────────────────────────────────────
+  const formatFactor = (value: number) => {
+    return `×${value.toFixed(2)}`;
+  };
+
   const handleStep1Next = async () => {
     if (!selectedBrand || !selectedCapacity) {
       setCalcError("Please select Brand and Capacity.");
@@ -158,7 +155,6 @@ function MachineryValuationWizardInner() {
         capacity_kva: selectedCapacity,
       };
       if (selectedYear) body.make_year = selectedYear;
-
       const res  = await fetch(API.calculate, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,7 +172,6 @@ function MachineryValuationWizardInner() {
     setStep(2);
   };
 
-  // ── Step 2 → Next ─────────────────────────────────────────────────────────
   const handleStep2Next = async () => {
     setCalcError(null);
     setCalculating(true);
@@ -188,7 +183,6 @@ function MachineryValuationWizardInner() {
       if (selectedYear)            body.make_year        = selectedYear;
       if (selectedHours)           body.running_hours    = selectedHours;
       if (selectedEngineCondition) body.engine_condition = selectedEngineCondition;
-
       const res  = await fetch(API.calculate, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,43 +198,39 @@ function MachineryValuationWizardInner() {
     setStep(3);
   };
 
-  // ── Live price update on step 1 field changes ─────────────────────────────
-useEffect(() => {
-  if (step !== 1) return;
-  if (!selectedBrand || !selectedCapacity) return;
+  // Live update step 1
+  useEffect(() => {
+    if (step !== 1) return;
+    if (!selectedBrand || !selectedCapacity) return;
+    const autoUpdatePrice = async () => {
+      setCalculating(true);
+      try {
+        const body: Record<string, string> = {
+          brand_id:     selectedBrand,
+          capacity_kva: selectedCapacity,
+        };
+        if (selectedYear) body.make_year = selectedYear;
+        const res  = await fetch(API.calculate, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(body),
+        });
+        const data: PriceResult = await res.json();
+        setPriceResult(data);
+      } catch (err) {
+        console.error("Live calculation error (step 1):", err);
+      } finally {
+        setCalculating(false);
+      }
+    };
+    autoUpdatePrice();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrand, selectedCapacity, selectedYear]);
 
-  const autoUpdatePrice = async () => {
-    setCalculating(true);
-    try {
-      const body: Record<string, string> = {
-        brand_id:     selectedBrand,
-        capacity_kva: selectedCapacity,
-      };
-      if (selectedYear) body.make_year = selectedYear;
-
-      const res  = await fetch(API.calculate, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
-      });
-      const data: PriceResult = await res.json();
-      setPriceResult(data);
-    } catch (err) {
-      console.error("Live calculation error (step 1):", err);
-    } finally {
-      setCalculating(false);
-    }
-  };
-
-  autoUpdatePrice();
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [selectedBrand, selectedCapacity, selectedYear]);
-
-  // ── Live price update on step 2 condition changes ─────────────────────────
+  // Live update step 2
   useEffect(() => {
     if (step !== 2) return;
     if (!selectedBrand || !selectedCapacity) return;
-
     const autoUpdatePrice = async () => {
       setCalculating(true);
       try {
@@ -251,7 +241,6 @@ useEffect(() => {
         if (selectedYear)            body.make_year        = selectedYear;
         if (selectedHours)           body.running_hours    = selectedHours;
         if (selectedEngineCondition) body.engine_condition = selectedEngineCondition;
-
         const res  = await fetch(API.calculate, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -265,14 +254,12 @@ useEffect(() => {
         setCalculating(false);
       }
     };
-
     autoUpdatePrice();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedHours, selectedEngineCondition]);
 
   const prevStep = () => step > 1 && setStep(step - 1);
 
-  // ── Image handling ────────────────────────────────────────────────────────
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -287,7 +274,6 @@ useEffect(() => {
     setUploadedPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     setSubmitError(null);
     setSubmitting(true);
@@ -308,7 +294,6 @@ useEffect(() => {
       if (priceResult?.hours_factor    != null) fd.append("hours_factor",    String(priceResult.hours_factor));
       if (priceResult?.engine_factor   != null) fd.append("engine_factor",   String(priceResult.engine_factor));
       uploadedImages.forEach((f) => fd.append("images[]", f));
-
       const res  = await fetch(API.valuationSubmit, { method: "POST", body: fd });
       const data = await res.json();
       if (data.status) setSubmitSuccess(true);
@@ -321,122 +306,114 @@ useEffect(() => {
     }
   };
 
-  // ── Helper: compute high/low from priceResult + current selections ────────
-  //
-  // Exact Excel formula (verified against Sample & Sample(2) sheets):
-  //
-  //   G (Average) = ROUNDDOWN(day2_price × year_factor × hours_band_factor, -3)
-  //   MAX         = ROUNDDOWN(G × 1.05, -3)   [Excellent condition]
-  //   MIN         = ROUNDDOWN(G × 0.95, -3)   [Poor condition]
-  //
-  //   year_factor      → returned directly by API from depreciation_year table
-  //   hours_band_factor → computed here using 0.97 per band (NOT the API's 0.98-based factor)
-  //                       <1000=1.0, 1k-2k=0.97, 2k-3k=0.97², 3k-4k=0.97³ …
-  //
-  // Notes:
-  //   • No 0.85 platform margin in the output range — it's already baked into day2_price
-  //   • Engine condition shifts the G value: Excellent=G×1.05, Average=G, Poor=G×0.95
-  //   • When hours not selected → MAX uses best band (<1000), MIN uses worst band (10000+)
-  //   • When engine not selected → full spread: Excellent MAX, Poor MIN
-  //   • Only brand+capacity → widest range: day2_price to day2_price×0.20
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Compute price range ────────────────────────────────────────────────────
   const computePriceRange = (): { high: number; low: number } | null => {
     if (!priceResult?.estimated_price) return null;
-
     const baseDay2Price =
       typeof priceResult.day2_price === "string"
         ? parseFloat(priceResult.day2_price)
         : Number(priceResult.day2_price);
-
     if (isNaN(baseDay2Price) || baseDay2Price <= 0) return null;
 
-    // year_factor from API (depreciation_year table) — already correct
-    const yearFactor = typeof priceResult.year_factor === "number" ? priceResult.year_factor : 1;
+    const yearFactor = typeof priceResult.year_factor   === "number" ? priceResult.year_factor   : 1;
+    const hourFactor = typeof priceResult.hours_factor  === "number" ? priceResult.hours_factor  : 1;
+
+    const yearSelected   = !!selectedYear;
+    const hoursSelected  = !!selectedHours;
+    const engineSelected = !!selectedEngineCondition;
+
+    const rd = (v: number) => Math.floor(v / 1000) * 1000;
+
+    const yearFactorMax   = yearSelected   ? yearFactor                         : 1.0;
+    const yearFactorMin   = yearSelected   ? yearFactor                         : 0.58;
+    const hoursFactorMax  = hoursSelected  ? hourFactor                         : 1.0;
+    const hoursFactorMin  = hoursSelected  ? hourFactor                         : 0.87;
+    const engineFactorMax = engineSelected ? parseFloat(selectedEngineCondition): 1.05;
+    const engineFactorMin = engineSelected ? parseFloat(selectedEngineCondition): 0.95;
+
+    const high = rd(baseDay2Price * 0.85 * yearFactorMax * hoursFactorMax * engineFactorMax);
+    const low  = rd(baseDay2Price * 0.80 * yearFactorMin * hoursFactorMin * engineFactorMin);
+
+    return { high, low };
+  };
+
+  // ── Build factor rows for breakdown panel ──────────────────────────────────
+  const buildFactorRows = (): FactorRow[] => {
+    if (!priceResult?.estimated_price) return [];
+
+    const yearFactor = typeof priceResult.year_factor  === "number" ? priceResult.year_factor  : 1;
     const hourFactor = typeof priceResult.hours_factor === "number" ? priceResult.hours_factor : 1;
 
     const yearSelected   = !!selectedYear;
     const hoursSelected  = !!selectedHours;
     const engineSelected = !!selectedEngineCondition;
 
-    // ROUNDDOWN to nearest 1000 — matches Excel ROUNDDOWN(..., -3)
-    const rd = (v: number) => Math.floor(v / 1000) * 1000;
+    return [
+      {
+        label:    "Platform margin (HIGH / LOW)",
+        maxVal:   0.85,
+        minVal:   0.80,
+        selected: true,
+        color:    "text-red-600",
+      },
+      {
+        label:    yearSelected
+          ? `Year factor (${selectedYear})`
+          : "Year factor (not selected)",
+        maxVal:   yearSelected ? yearFactor : 1.0,
+        minVal:   yearSelected ? yearFactor : 0.58,
+        selected: yearSelected,
+        color:    "text-teal-700",
+      },
+      {
+        label:    hoursSelected
+          ? `Hours factor (${getHoursLabel(selectedHours)})`
+          : "Hours factor (not selected)",
+        maxVal:   hoursSelected ? hourFactor : 1.0,
+        minVal:   hoursSelected ? hourFactor : 0.87,
+        selected: hoursSelected,
+        color:    "text-purple-700",
+      },
+      {
+        label:    engineSelected
+          ? `Engine factor (${getEngineLabel(selectedEngineCondition)})`
+          : "Engine factor (not selected)",
+        maxVal:   engineSelected ? parseFloat(selectedEngineCondition) : 1.05,
+        minVal:   engineSelected ? parseFloat(selectedEngineCondition) : 0.95,
+        selected: engineSelected,
+        color:    "text-blue-700",
+      },
+    ];
+  };
 
-    // 0.97^n hours band factor (verified from Excel Sample sheets)
-    const hoursFactorForBand = (idx: number) => Math.pow(0.97, idx);
+  const getHoursLabel = (val: string) => {
+    const map: Record<string, string> = {
+      "500":   "< 1,000 hrs",
+      "1500":  "1k–2k hrs",
+      "2500":  "2k–3k hrs",
+      "3500":  "3k–4k hrs",
+      "5000":  "4k–6k hrs",
+      "7000":  "6k–8k hrs",
+      "9000":  "8k–10k hrs",
+      "10000": "10,000+ hrs",
+      "-1":    "Don't know",
+    };
+    return map[val] ?? val;
+  };
 
-    // Average of all 8 hour bands (used for "Don't know")
-    const AVG_HOURS_FACTOR = Array.from({ length: 8 }, (_, i) => Math.pow(0.97, i))
-      .reduce((a, b) => a + b, 0) / 8;
-
-    // hours_band_index from API: null=not selected, -1=don't know, 0-7=specific band
-    const bandIndex: number | null =
-      priceResult.hours_band_index != null ? priceResult.hours_band_index : null;
-
-    // ── Resolve each factor for MAX and MIN independently ───────────────────
-    //
-    // When a field IS selected  → same factor used for both MAX and MIN
-    // When a field NOT selected → MAX gets best-case, MIN gets default penalty:
-    //   year   not selected → MAX ×1.0,  MIN ×0.58 (−42%)
-    //   hours  not selected → MAX ×1.0,  MIN ×0.87 (−13%)
-    //   engine not selected → MAX ×1.05, MIN ×0.95 (−5%)
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // ── YEAR ─────────────────────────────────────────────────────────────────
-    // MAX: 1.0 when not selected (no depreciation on best case)
-    // MIN: 0.58 (−42%) when not selected, replaced by yearFactor when selected
-    const yearFactorMax = yearSelected ? yearFactor : 1.0;
-    const yearFactorMin = yearSelected ? yearFactor : 0.58;
-
-    const hoursFactorMax = hoursSelected ? hourFactor : 1.0;
-    const hoursFactorMin = hoursSelected ? hourFactor : 0.87;
-
-    // ── HOURS ─────────────────────────────────────────────────────────────────
-    // MAX: 1.0 (best band <1000) when not selected
-    // MIN: 0.87 (−13%) when not selected, replaced by 0.97^band when selected
-   /* let hoursFactorMax: number;
-    let hoursFactorMin: number;
-    if (bandIndex === null) {
-      hoursFactorMax = 1.0;
-      hoursFactorMin = 0.87;
-    } else if (bandIndex === -1) {
-      hoursFactorMax = AVG_HOURS_FACTOR;
-      hoursFactorMin = AVG_HOURS_FACTOR;
-    } else {
-      hoursFactorMax = hoursFactorForBand(bandIndex);
-      hoursFactorMin = hoursFactorForBand(bandIndex);
-    }*/
-
-    // ── ENGINE ────────────────────────────────────────────────────────────────
-    // MAX: 1.05 (Excellent) when not selected
-    // MIN: 0.95 (−5%) when not selected, replaced by engineFactor when selected
-    const engineFactorMax = engineSelected ? parseFloat(selectedEngineCondition) : 1;
-    const engineFactorMin = engineSelected ? parseFloat(selectedEngineCondition) : 0.95;
-
-  
-
-
-    // ── Final MAX / MIN ───────────────────────────────────────────────────────
-    // MAX base: day2_price × 0.85 (−15% margin) then apply selected factors
-    // MIN base: day2_price × 0.80 (−20% margin) then apply selected/default factors
-
-  console.log("high",baseDay2Price,yearFactorMax,engineFactorMax,hoursFactorMax);
-   console.log("low",baseDay2Price,yearFactorMin,engineFactorMin,hoursFactorMin);
-    const high = rd(baseDay2Price * 0.85 * yearFactorMax * hoursFactorMax*engineFactorMax);
-    const low  = rd(baseDay2Price * 0.80 * yearFactorMin * hoursFactorMin*engineFactorMin);
-
-  //  const high = rd(gHigh * engineFactorMax);
-    //const low  = rd(gLow  * engineFactorMin);
-
-
-
-    return { high, low };
+  const getEngineLabel = (val: string) => {
+    const map: Record<string, string> = {
+      "1.05": "Excellent",
+      "1":    "Moderate",
+      "0.95": "Poor",
+    };
+    return map[val] ?? val;
   };
 
   const SelectSkeleton = () => (
     <div className="w-full h-12 rounded-xl bg-gray-100 animate-pulse" />
   );
 
-  // ── Success screen ────────────────────────────────────────────────────────
   if (submitSuccess) {
     return (
       <section className="min-h-screen py-14 bg-gradient-to-b from-white to-orange-50/40 flex items-center justify-center">
@@ -460,7 +437,9 @@ useEffect(() => {
     );
   }
 
-  const priceRange = computePriceRange();
+  const priceRange   = computePriceRange();
+  const factorRows   = buildFactorRows();
+  const hasAnyFactor = factorRows.length > 0;
 
   return (
     <section className="min-h-screen py-14 bg-gradient-to-b from-white to-orange-50/40 relative overflow-hidden">
@@ -497,7 +476,6 @@ useEffect(() => {
                 <>
                   <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">Price Calculator</h2>
                   <div className="space-y-5">
-
                     {/* BRAND */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -547,7 +525,7 @@ useEffect(() => {
                       )}
                     </div>
 
-                    {/* YEAR OF PURCHASE */}
+                    {/* YEAR */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">
                         Year of Purchase
@@ -586,7 +564,6 @@ useEffect(() => {
                 <>
                   <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">What is the machinery condition?</h2>
                   <div className="space-y-5">
-
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">Running Hours</label>
                       <div className="relative">
@@ -708,14 +685,11 @@ useEffect(() => {
           </div>
 
           {/* RIGHT SIDE */}
-          <div className="bg-white rounded-3xl p-8 border border-orange-100 shadow-sm h-full flex flex-col">
+          <div className="bg-white rounded-3xl p-8 border border-orange-100 shadow-sm h-full flex flex-col gap-6">
 
             {/* PRICE RANGE CARD */}
-            <div className="order-1 lg:order-2 mt-0 lg:mt-auto bg-gradient-to-b from-white to-orange-50/40 rounded-3xl p-8 border border-orange-100 mb-8 lg:mb-0">
-
-              <h3 className="text-3xl font-bold text-[#1a1a1a] mb-8">
-                Evaluation Range
-              </h3>
+            <div className="bg-gradient-to-b from-white to-orange-50/40 rounded-3xl p-8 border border-orange-100">
+              <h3 className="text-3xl font-bold text-[#1a1a1a] mb-8">Evaluation Range</h3>
 
               {calculating && (
                 <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -757,8 +731,89 @@ useEffect(() => {
               )}
             </div>
 
+            {/* ── FACTOR BREAKDOWN ─────────────────────────────────────────── */}
+            {hasAnyFactor && (
+              <div className="rounded-2xl border border-orange-100 overflow-hidden">
+                <div className="bg-orange-50/60 px-5 py-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-800">Price Factor Breakdown</span>
+                  {calculating && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#f07020]" />}
+                </div>
+
+                {/* Table header */}
+                <div className="grid grid-cols-[1fr_80px_80px] text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-2 bg-white border-b border-orange-50">
+                  <span>Factor</span>
+                  <span className="text-right text-green-700">HIGH</span>
+                  <span className="text-right text-red-600">LOW</span>
+                </div>
+
+                {/* Rows */}
+                <div className="divide-y divide-orange-50 bg-white">
+                  {factorRows.map((row) => (
+                    <div
+                      key={row.label}
+                      className="grid grid-cols-[1fr_80px_80px] items-center px-5 py-3 gap-2"
+                    >
+                      {/* Label + selected/estimated badge */}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm text-gray-700 truncate">{row.label}</span>
+                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          row.selected
+                            ? "bg-green-100 text-green-700"
+                            : "bg-orange-100 text-orange-700"
+                        }`}>
+                          {row.selected ? "Selected" : "Estimated"}
+                        </span>
+                      </div>
+
+                      {/* HIGH factor */}
+                      <div className="text-right">
+                        <span className={`text-sm font-semibold tabular-nums ${
+                          row.maxVal >= 1 ? "text-green-700" : "text-red-500"
+                        }`}>
+                          {formatFactor(row.maxVal)}
+                        </span>
+                      </div>
+
+                      {/* LOW factor */}
+                      <div className="text-right">
+                        <span className={`text-sm font-semibold tabular-nums ${
+                          row.minVal >= 1 ? "text-green-700" : "text-red-500"
+                        }`}>
+                          {formatFactor(row.minVal)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Combined multiplier totals */}
+                {priceRange && (() => {
+                  const totalHigh = factorRows.reduce((acc, r) => acc * r.maxVal, 1);
+                  const totalLow  = factorRows.reduce((acc, r) => acc * r.minVal, 1);
+                  return (
+                    <div className="grid grid-cols-[1fr_80px_80px] items-center px-5 py-3 bg-orange-50/60 border-t border-orange-100">
+                      <span className="text-xs font-semibold text-gray-600">Combined multiplier</span>
+                      <span className="text-right text-sm font-bold text-green-700 tabular-nums">
+                        {formatFactor(totalHigh)}
+                      </span>
+                      <span className="text-right text-sm font-bold text-red-600 tabular-nums">
+                        {formatFactor(totalLow)}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Rounddown note */}
+                <div className="px-5 py-2.5 bg-white border-t border-orange-50">
+                  <p className="text-[11px] text-gray-400">
+                    Final price rounded down to nearest ₹1,000 — matches Excel ROUNDDOWN(..., −3)
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* WHY CHOOSE US */}
-            <div className="order-2 lg:order-1 mb-8 lg:mb-0">
+            <div>
               <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">Why Choose Us?</h2>
               <div className="space-y-5">
                 {[
@@ -776,7 +831,6 @@ useEffect(() => {
             </div>
 
           </div>
-
         </div>
       </div>
 
