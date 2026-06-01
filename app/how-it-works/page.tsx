@@ -39,23 +39,35 @@ export default async function HowItWorksPage() {
               />
             );
 
-          case "why_process1":
+          case "why_process":
             return (
               <WhyProcess
-              
+               key={section.id}
+                data={section.section_data}
               />
             );
 
-          case "faq1":
-            return (
-              <FAQ
-              />
-            );
+    case "faq": {
+  let faqs = [];
 
-          case "final_cta1":
+  try {
+    const cleaned = section.section_data
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ");
+
+    faqs = JSON.parse(cleaned);
+  } catch (e) {
+    console.error("FAQ Parse Error", e);
+  }
+
+  return <FAQ key={section.id} faqs={faqs} />;
+}
+
+          case "final_cta":
             return (
               <FinalCTA
-               
+                   key={section.id}
+                data={section.section_data}
               />
             );
 
@@ -63,19 +75,6 @@ export default async function HowItWorksPage() {
             return null;
         }
       })}
-
- <WhyProcess/>
-       <FAQ
-              />
-
-        <FinalCTA
-        title="Ready to Get Started?"
-        desc="Join hundreds of satisfied sellers. Get your instant price estimate now!"
-        primaryText="Calculate Price →"
-        secondaryText="Talk to Expert"
-        primaryLink="/calculator"
-        secondaryLink="/contact"
-      />
 
     </main>
   );
