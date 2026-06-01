@@ -762,29 +762,8 @@ function MachineryValuationWizardInner() {
                   )}
                 </div>
 
-                {/* Combined multiplier totals (excludes day2 row) */}
-                {priceRange && (() => {
-                  const totalHigh = multiplierRows.reduce((acc, r) => acc * r.maxVal, 1);
-                  const totalLow  = multiplierRows.reduce((acc, r) => acc * r.minVal, 1);
-                  return (
-                    <div className="grid grid-cols-[1fr_80px_80px] items-center px-5 py-3 bg-orange-50/60 border-t border-orange-100">
-                      <span className="text-xs font-semibold text-gray-600">Combined multiplier</span>
-                      <span className="text-right text-sm font-bold text-green-700 tabular-nums">
-                        {formatFactor(totalHigh)}
-                      </span>
-                      <span className="text-right text-sm font-bold text-red-600 tabular-nums">
-                        {formatFactor(totalLow)}
-                      </span>
-                    </div>
-                  );
-                })()}
+               
 
-                {/* Rounddown note */}
-                <div className="px-5 py-2.5 bg-white border-t border-orange-50">
-                  <p className="text-[11px] text-gray-400">
-                    Final price rounded down to nearest ₹1,000 — matches Excel ROUNDDOWN(..., −3)
-                  </p>
-                </div>
               </div>
             )}
 
