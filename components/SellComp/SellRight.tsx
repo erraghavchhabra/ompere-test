@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ChevronDown, UploadCloud, X, FileText } from "lucide-react";
 import { API } from "@/lib/api";
 
@@ -21,6 +21,11 @@ interface UploadedFile {
   preview?: string;
 }
 
+interface SelectOption {
+  id: string | number;
+  name: string;
+}
+
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 const INITIAL_FORM: FormData = {
@@ -35,7 +40,7 @@ const INITIAL_FORM: FormData = {
   condition: "",
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 6;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const ALLOWED_EXTENSIONS = ".jpg,.jpeg,.png,.pdf";
@@ -70,6 +75,97 @@ const validate = (formData: FormData): FormErrors => {
   return errors;
 };
 
+// ─── Generic hook to fetch select options ────────────────────────────────────
+function useSelectOptions(url: string) {
+  const [options, setOptions] = useState<SelectOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(url)
+      .then((r) => r.json())
+      .then((data: SelectOption[]) => {
+        if (!cancelled) setOptions(data);
+      })
+      .catch(() => {
+        if (!cancelled) setOptions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return { options, loading };
+}
+
+// ─── Reusable Select field ────────────────────────────────────────────────────
+interface SelectFieldProps {
+  label: string;
+  name: keyof FormData;
+  value: string;
+  placeholder?: string;
+  options: SelectOption[];
+  loading?: boolean;
+  error?: string;
+  /**
+   * Which field to submit as the <option> value.
+   * - "name"  → sends the display label (default) — use for brand, capacity, year, hours, condition
+   * - "id"    → sends the numeric/foreign-key id — use only when backend expects an id
+   */
+  valueKey?: "id" | "name";
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onBlur: (e: React.FocusEvent<HTMLSelectElement>) => void;
+}
+
+function SelectField({
+  label,
+  name,
+  value,
+  placeholder = "Select option",
+  options,
+  loading = false,
+  error,
+  valueKey = "name",
+  onChange,
+  onBlur,
+}: SelectFieldProps) {
+  const selectClass = `w-full h-14 px-5 rounded-2xl border appearance-none focus:outline-none focus:ring-1 bg-white ${
+    error
+      ? "border-red-400 focus:ring-red-400 text-gray-800"
+      : "border-gray-200 focus:ring-[#f07020] text-gray-500"
+  } disabled:opacity-50 disabled:cursor-not-allowed`;
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-800 mb-2">
+        {label} *
+      </label>
+      <div className="relative">
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={onBlur}
+          disabled={loading}
+          className={selectClass}
+        >
+          <option value="">{loading ? "Loading…" : placeholder}</option>
+          {options.map((opt) => (
+            <option key={opt.id} value={String(opt[valueKey])}>
+              {opt.name}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      </div>
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function SellRight() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -80,6 +176,13 @@ export default function SellRight() {
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamic options from API
+  const { options: brandOptions, loading: brandsLoading } = useSelectOptions(API.brands);
+  const { options: capacityOptions, loading: capacitiesLoading } = useSelectOptions(API.capacities);
+  const { options: yearOptions, loading: yearsLoading } = useSelectOptions(API.years);
+  const { options: hoursOptions, loading: hoursLoading } = useSelectOptions(API.hours);
+  const { options: engineConditionOptions, loading: engineConditionsLoading } = useSelectOptions(API.engineConditions);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -106,16 +209,16 @@ export default function SellRight() {
   };
 
   const processFiles = useCallback((newFiles: File[]) => {
-    const errors: string[] = [];
+    const errs: string[] = [];
     const valid: UploadedFile[] = [];
 
     newFiles.forEach((file) => {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        errors.push(`"${file.name}" must be a JPG, PNG, or PDF.`);
+        errs.push(`"${file.name}" must be a JPG, PNG, or PDF.`);
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
-        errors.push(`"${file.name}" exceeds the 5 MB size limit.`);
+        errs.push(`"${file.name}" exceeds the 5 MB size limit.`);
         return;
       }
       valid.push({
@@ -124,7 +227,7 @@ export default function SellRight() {
       });
     });
 
-    setFileErrors(errors);
+    setFileErrors(errs);
     setUploadedFiles((prev) => {
       const combined = [...prev, ...valid];
       if (combined.length > MAX_FILES) {
@@ -160,15 +263,14 @@ export default function SellRight() {
     setLoading(true);
 
     try {
-     const body = new FormData();
-Object.entries(formData).forEach(([k, v]) => body.append(k, v));
-uploadedFiles.forEach(({ file }) => body.append("photos[]", file)); // ← only change
+      const body = new FormData();
+      Object.entries(formData).forEach(([k, v]) => body.append(k, v));
+      uploadedFiles.forEach(({ file }) => body.append("photos[]", file));
 
-const response = await fetch(API.sellRequest, {
-  method: "POST",
-  body,
-});
-
+      const response = await fetch(API.sellRequest, {
+        method: "POST",
+        body,
+      });
 
       const result = await response.json();
 
@@ -198,21 +300,13 @@ const response = await fetch(API.sellRequest, {
         : "border-gray-200 focus:ring-[#f07020]"
     }`;
 
-  const selectClass = (name: keyof FormData) =>
-    `w-full h-14 px-5 rounded-2xl border appearance-none focus:outline-none focus:ring-1 bg-white ${
-      errors[name]
-        ? "border-red-400 focus:ring-red-400 text-gray-800"
-        : "border-gray-200 focus:ring-[#f07020] text-gray-500"
-    }`;
-
   return (
     <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10">
-
       <h2 className="text-4xl font-bold text-[#1a1a1a] mb-10">
         Genset Information Form
       </h2>
 
-      {/* Your Information */}
+      {/* ─── Your Information ─── */}
       <div className="mb-10">
         <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">Your Information</h3>
         <div className="grid md:grid-cols-2 gap-6">
@@ -251,80 +345,75 @@ const response = await fetch(API.sellRequest, {
         </div>
       </div>
 
-      {/* Genset Details */}
+      {/* ─── Genset Details ─── */}
       <div className="mb-10">
         <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">Genset Details</h3>
         <div className="grid md:grid-cols-2 gap-6">
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Brand *</label>
-            <div className="relative">
-              <select name="brand" value={formData.brand} onChange={handleChange} onBlur={handleBlur}
-                className={selectClass("brand")}>
-                <option value="">Select option</option>
-                <option value="Caterpillar">Caterpillar</option>
-                <option value="Cummins">Cummins</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.brand && <p className="mt-1 text-sm text-red-500">{errors.brand}</p>}
-          </div>
+          {/* Brand — sends name */}
+          <SelectField
+            label="Brand"
+            name="brand"
+            value={formData.brand}
+            options={brandOptions}
+            loading={brandsLoading}
+            error={errors.brand}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Capacity Range *</label>
-            <div className="relative">
-              <select name="capacity_range" value={formData.capacity_range} onChange={handleChange} onBlur={handleBlur}
-                className={selectClass("capacity_range")}>
-                <option value="">Select option</option>
-                <option value="125 KVA">125 KVA</option>
-                <option value="250 KVA">250 KVA</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.capacity_range && <p className="mt-1 text-sm text-red-500">{errors.capacity_range}</p>}
-          </div>
+          {/* Capacity Range — sends name */}
+          <SelectField
+            label="Capacity Range"
+            name="capacity_range"
+            value={formData.capacity_range}
+            placeholder="Select capacity"
+            options={capacityOptions}
+            loading={capacitiesLoading}
+            error={errors.capacity_range}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Manufacturing Year *</label>
-            <div className="relative">
-              <select name="manufacturing_year" value={formData.manufacturing_year} onChange={handleChange} onBlur={handleBlur}
-                className={selectClass("manufacturing_year")}>
-                <option value="">Select option</option>
-                <option value="2020">2020</option>
-                <option value="2021">2021</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.manufacturing_year && <p className="mt-1 text-sm text-red-500">{errors.manufacturing_year}</p>}
-          </div>
+          {/* Manufacturing Year — sends make_year (name), not age_years (id) */}
+          <SelectField
+            label="Manufacturing Year"
+            name="manufacturing_year"
+            value={formData.manufacturing_year}
+            placeholder="Select year"
+            options={yearOptions}
+            loading={yearsLoading}
+            error={errors.manufacturing_year}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Running Hours *</label>
-            <div className="relative">
-              <select name="running_hours" value={formData.running_hours} onChange={handleChange} onBlur={handleBlur}
-                className={selectClass("running_hours")}>
-                <option value="">Select option</option>
-                <option value="1000">1000</option>
-                <option value="2000">2000</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.running_hours && <p className="mt-1 text-sm text-red-500">{errors.running_hours}</p>}
-          </div>
+          {/* Running Hours — sends label (name) */}
+          <SelectField
+            label="Running Hours"
+            name="running_hours"
+            value={formData.running_hours}
+            placeholder="Select running hours"
+            options={hoursOptions}
+            loading={hoursLoading}
+            error={errors.running_hours}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          />
 
+          {/* Engine Condition — full width, sends name */}
           <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Condition *</label>
-            <div className="relative">
-              <select name="condition" value={formData.condition} onChange={handleChange} onBlur={handleBlur}
-                className={selectClass("condition")}>
-                <option value="">Select condition</option>
-                <option value="Excellent">Excellent</option>
-                <option value="Good">Good</option>
-                <option value="Average">Average</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
-            {errors.condition && <p className="mt-1 text-sm text-red-500">{errors.condition}</p>}
+            <SelectField
+              label="Engine Condition"
+              name="condition"
+              value={formData.condition}
+              placeholder="Select engine condition"
+              options={engineConditionOptions}
+              loading={engineConditionsLoading}
+              error={errors.condition}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
           </div>
 
         </div>
@@ -367,7 +456,6 @@ const response = await fetch(API.sellRequest, {
           />
         </div>
 
-        {/* File errors */}
         {fileErrors.length > 0 && (
           <ul className="mt-3 space-y-1">
             {fileErrors.map((err, i) => (
@@ -376,14 +464,12 @@ const response = await fetch(API.sellRequest, {
           </ul>
         )}
 
-        {/* File count */}
         {uploadedFiles.length > 0 && (
           <p className="text-xs text-gray-400 mt-3">
             {uploadedFiles.length} / {MAX_FILES} file{uploadedFiles.length !== 1 ? "s" : ""} selected
           </p>
         )}
 
-        {/* Preview Grid */}
         {uploadedFiles.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
             {uploadedFiles.map(({ file, preview }, idx) => (
@@ -411,7 +497,7 @@ const response = await fetch(API.sellRequest, {
         )}
       </div>
 
-      {/* CTA */}
+      {/* ─── CTA ─── */}
       <button
         onClick={handleSubmit}
         disabled={loading}
@@ -419,7 +505,6 @@ const response = await fetch(API.sellRequest, {
       >
         {loading ? "Submitting..." : "Submit Information"}
       </button>
-
     </div>
   );
 }

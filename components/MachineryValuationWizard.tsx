@@ -4,18 +4,22 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, ChevronDown, Upload, X, Loader2 } from "lucide-react";
 import { API } from "@/lib/api";
+import { getSettings } from "@/lib/getSettings";
 
-interface Brand    { id: number | string; name: string }
-interface Capacity { kva: number | string }
+interface Brand         { id: number | string; name: string }
+interface Capacity      { kva: number | string }
+interface HourOption    { id: number | string; name: string; factor: number }
+interface YearOption    { id: number | string; name: string; factor: number }
+interface EngineOption  { id: number | string; name: string; factor: number }
 
 interface PriceResult {
   status: boolean;
   price_new?: number | string | null;
   day2_price?: number | string | null;
   year?: number | string | null;
-  year_factor?: number | null;
-  hours_factor?: number | null;
-  engine_factor?: number | null;
+  year_factor?: number | string | null;
+  hours_factor?: number | string | null;
+  engine_factor?: number | string | null;
   estimated_price?: number | string | null;
   hours_band_index?: number | null;
   message?: string;
@@ -29,12 +33,48 @@ interface FactorRow {
   color: string;
 }
 
+// ─── Generic fetch hook ───────────────────────────────────────────────────────
+function useFetchOptions<T>(url: string) {
+  const [data, setData]       = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(url)
+      .then((r) => r.json())
+      .then((d: T[]) => { if (!cancelled) setData(d); })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return { data, loading };
+}
+
+// ─── Safe number coercion ─────────────────────────────────────────────────────
+function toNum(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "string" ? parseFloat(value) : Number(value);
+  return isNaN(n) ? null : n;
+}
+
 // ─── Inner component ──────────────────────────────────────────────────────────
 function MachineryValuationWizardInner() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const data = await getSettings();
+      console.log("data", data);
+      setSettings(data);
+    };
+    fetchSettings();
+  }, []);
+
   const searchParams = useSearchParams();
-  // Now only 2 steps: 1 = Machine Details (merged), 2 = Images
   const [step, setStep] = useState(1);
-  const [uploadedImages, setUploadedImages]     = useState<File[]>([]);
+  const [uploadedImages,   setUploadedImages]   = useState<File[]>([]);
   const [uploadedPreviews, setUploadedPreviews] = useState<string[]>([]);
 
   const MACHINE_TYPE_ID = "1";
@@ -42,16 +82,21 @@ function MachineryValuationWizardInner() {
   const nameFromUrl  = searchParams.get("name")  ?? "";
   const phoneFromUrl = searchParams.get("phone") ?? "";
 
-  const [selectedBrand,           setSelectedBrand]           = useState(searchParams.get("brand_id")     ?? "");
-  const [selectedCapacity,        setSelectedCapacity]        = useState(searchParams.get("capacity_kva") ?? "");
-  const [selectedYear,            setSelectedYear]            = useState(searchParams.get("year")         ?? "");
-  const [selectedHours,           setSelectedHours]           = useState("");
-  const [selectedEngineCondition, setSelectedEngineCondition] = useState("");
+  const [selectedBrand,          setSelectedBrand]          = useState(searchParams.get("brand_id")     ?? "");
+  const [selectedCapacity,       setSelectedCapacity]       = useState(searchParams.get("capacity_kva") ?? "");
+  const [selectedYear,           setSelectedYear]           = useState(searchParams.get("year")         ?? "");
+  const [selectedHours,          setSelectedHours]          = useState("");
+  const [selectedEngineCondition,setSelectedEngineCondition]= useState("");
 
   const [brands,          setBrands]          = useState<Brand[]>([]);
   const [capacityOptions, setCapacityOptions] = useState<Capacity[]>([]);
   const [loadingBrands,   setLoadingBrands]   = useState(true);
   const [loadingCapacity, setLoadingCapacity] = useState(false);
+
+  // Dynamic option lists
+  const { data: hourOptions,   loading: loadingHours   } = useFetchOptions<HourOption>(API.hours);
+  const { data: yearOptions,   loading: loadingYears   } = useFetchOptions<YearOption>(API.years);
+  const { data: engineOptions, loading: loadingEngines } = useFetchOptions<EngineOption>(API.engineConditions);
 
   const [calculating,   setCalculating]   = useState(false);
   const [priceResult,   setPriceResult]   = useState<PriceResult | null>(null);
@@ -60,11 +105,36 @@ function MachineryValuationWizardInner() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError,   setSubmitError]   = useState<string | null>(null);
 
-  const years = Array.from(
-    { length: new Date().getFullYear() - 1999 },
-    (_, i) => `${2000 + i}`
-  ).reverse();
+  // ── Margin helpers (fall back to hardcoded defaults if settings not loaded) ─
+  const getMarginHigh = (): number => toNum(settings.margin_high) ?? 0.85;
+  const getMarginLow  = (): number => toNum(settings.margin_low)  ?? 0.80;
 
+  // ── Helpers to look up factor from selected value ─────────────────────────
+  const getHourFactor = (): number | null => {
+    if (!selectedHours) return null;
+    const found = hourOptions.find((h) => String(h.id) === String(selectedHours));
+    return found != null ? toNum(found.factor) : null;
+  };
+
+  const getYearFactor = (): number | null => {
+    if (!selectedYear) return null;
+    const found = yearOptions.find((y) => String(y.name) === String(selectedYear));
+    return found != null ? toNum(found.factor) : null;
+  };
+
+  const getEngineFactor = (): number | null => {
+    if (!selectedEngineCondition) return null;
+    const found = engineOptions.find((e) => String(e.id) === String(selectedEngineCondition));
+    return found != null ? toNum(found.factor) : null;
+  };
+
+  const getHoursLabel  = (val: string) =>
+    hourOptions.find((h) => String(h.id) === val)?.name ?? val;
+
+  const getEngineLabel = (val: string) =>
+    engineOptions.find((e) => String(e.id) === val)?.name ?? val;
+
+  // ── Fetch brands ──────────────────────────────────────────────────────────
   useEffect(() => {
     setLoadingBrands(true);
     fetch(API.brands)
@@ -132,15 +202,18 @@ function MachineryValuationWizardInner() {
   };
 
   const formatCurrency = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined) return "₹0";
-    const num = typeof value === "string" ? parseFloat(value) : value;
-    if (isNaN(num)) return "₹0";
+    const num = toNum(value);
+    if (num === null) return "₹0";
     return `₹${num.toLocaleString("en-IN")}`;
   };
 
-  const formatFactor = (value: number) => `×${value.toFixed(2)}`;
+  const formatFactor = (value: number | string | null | undefined) => {
+    const num = toNum(value);
+    if (num === null) return "—";
+    return `×${num.toFixed(2)}`;
+  };
 
-  // ── Step 1 Next: validate + proceed to images ──────────────────────────────
+  // ── Step 1 Next ───────────────────────────────────────────────────────────
   const handleStep1Next = async () => {
     if (!selectedBrand || !selectedCapacity) {
       setCalcError("Please select Brand and Capacity.");
@@ -173,7 +246,7 @@ function MachineryValuationWizardInner() {
     setStep(2);
   };
 
-  // Live update — fires whenever any selector in step 1 changes
+  // ── Live price update on selector change ──────────────────────────────────
   useEffect(() => {
     if (step !== 1) return;
     if (!selectedBrand || !selectedCapacity) return;
@@ -239,6 +312,8 @@ function MachineryValuationWizardInner() {
       if (priceResult?.year_factor     != null) fd.append("year_factor",     String(priceResult.year_factor));
       if (priceResult?.hours_factor    != null) fd.append("hours_factor",    String(priceResult.hours_factor));
       if (priceResult?.engine_factor   != null) fd.append("engine_factor",   String(priceResult.engine_factor));
+      fd.append("margin_high", String(getMarginHigh()));
+      fd.append("margin_low",  String(getMarginLow()));
       uploadedImages.forEach((f) => fd.append("images[]", f));
       const res  = await fetch(API.valuationSubmit, { method: "POST", body: fd });
       const data = await res.json();
@@ -252,17 +327,18 @@ function MachineryValuationWizardInner() {
     }
   };
 
-  // ── Compute price range ────────────────────────────────────────────────────
+  // ── Compute price range using dynamic factors + settings margins ──────────
   const computePriceRange = (): { high: number; low: number } | null => {
     if (!priceResult?.estimated_price) return null;
-    const baseDay2Price =
-      typeof priceResult.day2_price === "string"
-        ? parseFloat(priceResult.day2_price)
-        : Number(priceResult.day2_price);
-    if (isNaN(baseDay2Price) || baseDay2Price <= 0) return null;
+    const baseDay2Price = toNum(priceResult.day2_price);
+    if (baseDay2Price === null || baseDay2Price <= 0) return null;
 
-    const yearFactor = typeof priceResult.year_factor  === "number" ? priceResult.year_factor  : 1;
-    const hourFactor = typeof priceResult.hours_factor === "number" ? priceResult.hours_factor : 1;
+    const marginHigh = getMarginHigh();
+    const marginLow  = getMarginLow();
+
+    const yearFactor   = getYearFactor()   ?? toNum(priceResult.year_factor);
+    const hourFactor   = getHourFactor()   ?? toNum(priceResult.hours_factor);
+    const engineFactor = getEngineFactor() ?? null;
 
     const yearSelected   = !!selectedYear;
     const hoursSelected  = !!selectedHours;
@@ -270,32 +346,29 @@ function MachineryValuationWizardInner() {
 
     const rd = (v: number) => Math.floor(v / 1000) * 1000;
 
-    const yearFactorMax   = yearSelected   ? yearFactor                          : 1.0;
-    const yearFactorMin   = yearSelected   ? yearFactor                          : 0.58;
-    const hoursFactorMax  = hoursSelected  ? hourFactor                          : 1.0;
-    const hoursFactorMin  = hoursSelected  ? hourFactor                          : 0.87;
-    const engineFactorMax = engineSelected ? parseFloat(selectedEngineCondition) : 1.0;
-    const engineFactorMin = engineSelected ? parseFloat(selectedEngineCondition) : 0.95;
+    const yearFactorMax   = yearSelected   && yearFactor   != null ? yearFactor   : 1.0;
+    const yearFactorMin   = yearSelected   && yearFactor   != null ? yearFactor   : 0.58;
+    const hoursFactorMax  = hoursSelected  && hourFactor   != null ? hourFactor   : 1.0;
+    const hoursFactorMin  = hoursSelected  && hourFactor   != null ? hourFactor   : 0.87;
+    const engineFactors   = engineOptions.map((e) => toNum(e.factor)).filter((f): f is number => f !== null);
+    const engineFactorMax = engineSelected && engineFactor != null ? engineFactor : (engineFactors.length ? Math.max(...engineFactors) : 1.0);
+    const engineFactorMin = engineSelected && engineFactor != null ? engineFactor : (engineFactors.length ? Math.min(...engineFactors) : 0.95);
 
-    const high = rd(baseDay2Price * 0.85 * yearFactorMax * hoursFactorMax * engineFactorMax);
-    const low  = rd(baseDay2Price * 0.80 * yearFactorMin * hoursFactorMin * engineFactorMin);
+    const high = rd(baseDay2Price * marginHigh * yearFactorMax * hoursFactorMax * engineFactorMax);
+    const low  = rd(baseDay2Price * marginLow  * yearFactorMin * hoursFactorMin * engineFactorMin);
 
     return { high, low };
   };
 
-  // ── Build factor rows for breakdown panel ──────────────────────────────────
+  // ── Build factor rows using dynamic factors + settings margins ────────────
   const buildFactorRows = (): FactorRow[] => {
     if (!priceResult?.estimated_price) return [];
 
-    const day2Price =
-      priceResult.day2_price != null
-        ? (typeof priceResult.day2_price === "string"
-            ? parseFloat(priceResult.day2_price)
-            : Number(priceResult.day2_price))
-        : null;
+    const day2Price = toNum(priceResult.day2_price);
 
-    const yearFactor = typeof priceResult.year_factor  === "number" ? priceResult.year_factor  : 1;
-    const hourFactor = typeof priceResult.hours_factor === "number" ? priceResult.hours_factor : 1;
+    const yearFactor   = getYearFactor()   ?? toNum(priceResult.year_factor)  ?? 1;
+    const hourFactor   = getHourFactor()   ?? toNum(priceResult.hours_factor) ?? 1;
+    const engineFactor = getEngineFactor() ?? 1;
 
     const yearSelected   = !!selectedYear;
     const hoursSelected  = !!selectedHours;
@@ -303,14 +376,10 @@ function MachineryValuationWizardInner() {
 
     const rows: FactorRow[] = [];
 
-    // Day-2 base price row — displayed as a plain value, not a multiplier
-    // We encode it by storing the numeric value in both maxVal/minVal so the
-    // table renderer can detect it with a special flag. We use a sentinel approach:
-    // pass the price as a negative sentinel so we can format it specially.
     if (day2Price !== null && !isNaN(day2Price)) {
       rows.push({
         label:    "Day-2 Base Price",
-        maxVal:   day2Price,   // actual rupee value; rendered differently
+        maxVal:   day2Price,
         minVal:   day2Price,
         selected: true,
         color:    "text-gray-800",
@@ -320,8 +389,8 @@ function MachineryValuationWizardInner() {
     rows.push(
       {
         label:    "Platform margin (HIGH / LOW)",
-        maxVal:   0.85,
-        minVal:   0.80,
+        maxVal:   getMarginHigh(),
+        minVal:   getMarginLow(),
         selected: true,
         color:    "text-red-600",
       },
@@ -347,8 +416,8 @@ function MachineryValuationWizardInner() {
         label:    engineSelected
           ? `Engine factor (${getEngineLabel(selectedEngineCondition)})`
           : "Engine factor (not selected)",
-        maxVal:   engineSelected ? parseFloat(selectedEngineCondition) : 1.05,
-        minVal:   engineSelected ? parseFloat(selectedEngineCondition) : 0.95,
+        maxVal:   engineSelected ? engineFactor : (engineOptions.length ? Math.max(...engineOptions.map((e) => toNum(e.factor) ?? 0)) : 1.05),
+        minVal:   engineSelected ? engineFactor : (engineOptions.length ? Math.min(...engineOptions.map((e) => toNum(e.factor) ?? 0)) : 0.95),
         selected: engineSelected,
         color:    "text-blue-700",
       }
@@ -357,37 +426,11 @@ function MachineryValuationWizardInner() {
     return rows;
   };
 
-  const getHoursLabel = (val: string) => {
-    const map: Record<string, string> = {
-      "500":   "< 1,000 hrs",
-      "1500":  "1k–2k hrs",
-      "2500":  "2k–3k hrs",
-      "3500":  "3k–4k hrs",
-      "5000":  "4k–6k hrs",
-      "7000":  "6k–8k hrs",
-      "9000":  "8k–10k hrs",
-      "10000": "10,000+ hrs",
-      "-1":    "Don't know",
-    };
-    return map[val] ?? val;
-  };
-
-  const getEngineLabel = (val: string) => {
-    const map: Record<string, string> = {
-      "1.05": "Excellent",
-      "1":    "Moderate",
-      "0.95": "Poor",
-    };
-    return map[val] ?? val;
-  };
-
   const SelectSkeleton = () => (
     <div className="w-full h-12 rounded-xl bg-gray-100 animate-pulse" />
   );
 
-  // Detect if a factor row is the day2_price row (both values are the same large number)
-  const isDay2Row = (row: FactorRow) =>
-    row.label === "Day-2 Base Price";
+  const isDay2Row = (row: FactorRow) => row.label === "Day-2 Base Price";
 
   if (submitSuccess) {
     return (
@@ -416,9 +459,6 @@ function MachineryValuationWizardInner() {
   const factorRows   = buildFactorRows();
   const hasAnyFactor = factorRows.length > 0;
 
-  // Factor rows excluding the day2 price row (for combined multiplier)
-  const multiplierRows = factorRows.filter((r) => !isDay2Row(r));
-
   return (
     <section className="min-h-screen py-14 bg-gradient-to-b from-white to-orange-50/40 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
@@ -426,7 +466,7 @@ function MachineryValuationWizardInner() {
 
           {/* LEFT FORM */}
           <div className="flex flex-col">
-            {/* Stepper — now 2 steps */}
+            {/* Stepper */}
             <div className="flex items-center flex-wrap gap-4 mb-6">
               {["Machine Details", "Images"].map((label, index) => {
                 const current = index + 1;
@@ -449,7 +489,7 @@ function MachineryValuationWizardInner() {
             {/* Main Card */}
             <div className="bg-white rounded-3xl p-8 border border-orange-100 shadow-sm flex-1">
 
-              {/* ── STEP 1: Merged Machine Details + Condition ── */}
+              {/* ── STEP 1 ── */}
               {step === 1 && (
                 <>
                   <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">Machine Details & Condition</h2>
@@ -504,72 +544,69 @@ function MachineryValuationWizardInner() {
                       )}
                     </div>
 
-                    {/* YEAR */}
+                    {/* YEAR — dynamic */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">
                         Year of Purchase
                       </label>
-                      <div className="relative">
-                        <select
-                          value={selectedYear}
-                          onChange={(e) => setSelectedYear(e.target.value)}
-                          disabled={!selectedCapacity}
-                          className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
-                        >
-                          <option value="">Select Year</option>
-                          {years.map((year) => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
+                      {loadingYears ? <SelectSkeleton /> : (
+                        <div className="relative">
+                          <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            disabled={!selectedCapacity}
+                            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
+                          >
+                            <option value="">Select Year</option>
+                            {yearOptions.map((y) => (
+                              <option key={y.id} value={y.name}>{y.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </div>
+                      )}
                     </div>
 
-                    {/* Divider */}
-                    
-
-                    {/* RUNNING HOURS */}
+                    {/* RUNNING HOURS — dynamic */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">Running Hours</label>
-                      <div className="relative">
-                        <select
-                          value={selectedHours}
-                          onChange={(e) => setSelectedHours(e.target.value)}
-                          disabled={!selectedCapacity}
-                          className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
-                        >
-                          <option value="">Select Running Hours</option>
-                          <option value="500">Less than 1,000 hrs</option>
-                          <option value="1500">1,000 – 2,000 hrs</option>
-                          <option value="2500">2,000 – 3,000 hrs</option>
-                          <option value="3500">3,000 – 4,000 hrs</option>
-                          <option value="5000">4,000 – 6,000 hrs</option>
-                          <option value="7000">6,000 – 8,000 hrs</option>
-                          <option value="9000">8,000 – 10,000 hrs</option>
-                          <option value="10000">10,000+ hrs</option>
-                          <option value="-1">Don&apos;t know</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
+                      {loadingHours ? <SelectSkeleton /> : (
+                        <div className="relative">
+                          <select
+                            value={selectedHours}
+                            onChange={(e) => setSelectedHours(e.target.value)}
+                            disabled={!selectedCapacity}
+                            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
+                          >
+                            <option value="">Select Running Hours</option>
+                            {hourOptions.map((h) => (
+                              <option key={h.id} value={h.id}>{h.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </div>
+                      )}
                     </div>
 
-                    {/* ENGINE CONDITION */}
+                    {/* ENGINE CONDITION — dynamic */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-800 mb-2">Engine Condition</label>
-                      <div className="relative">
-                        <select
-                          value={selectedEngineCondition}
-                          onChange={(e) => setSelectedEngineCondition(e.target.value)}
-                          disabled={!selectedCapacity}
-                          className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
-                        >
-                          <option value="">Select Engine Condition</option>
-                          <option value="1.05">Excellent</option>
-                          <option value="1">Moderate</option>
-                          <option value="0.95">Poor</option>
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
+                      {loadingEngines ? <SelectSkeleton /> : (
+                        <div className="relative">
+                          <select
+                            value={selectedEngineCondition}
+                            onChange={(e) => setSelectedEngineCondition(e.target.value)}
+                            disabled={!selectedCapacity}
+                            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
+                          >
+                            <option value="">Select Engine Condition</option>
+                            {engineOptions.map((e) => (
+                              <option key={e.id} value={e.id}>{e.name}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </div>
+                      )}
                     </div>
 
                     {calcError && <p className="text-sm text-red-500 -mt-1">{calcError}</p>}
@@ -693,7 +730,7 @@ function MachineryValuationWizardInner() {
               )}
             </div>
 
-            {/* ── FACTOR BREAKDOWN ─────────────────────────────────────────── */}
+            {/* FACTOR BREAKDOWN */}
             {hasAnyFactor && (
               <div className="rounded-2xl border border-orange-100 overflow-hidden">
                 <div className="bg-orange-50/60 px-5 py-3 flex items-center justify-between">
@@ -701,59 +738,38 @@ function MachineryValuationWizardInner() {
                   {calculating && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#f07020]" />}
                 </div>
 
-                {/* Table header */}
                 <div className="grid grid-cols-[1fr_80px_80px] text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-2 bg-white border-b border-orange-50">
                   <span>Factor</span>
                   <span className="text-right text-green-700">HIGH</span>
                   <span className="text-right text-red-600">LOW</span>
                 </div>
 
-                {/* Rows */}
                 <div className="divide-y divide-orange-50 bg-white">
                   {factorRows.map((row) =>
                     isDay2Row(row) ? (
-                      /* Day-2 Base Price — single value spanning full row */
-                      <div
-                        key={row.label}
-                        className="flex items-center justify-between px-5 py-3 bg-orange-50/40"
-                      >
+                      <div key={row.label} className="flex items-center justify-between px-5 py-3 bg-orange-50/40">
                         <span className="text-sm text-gray-700">{row.label}</span>
                         <span className="text-sm font-semibold tabular-nums text-gray-800">
                           {formatCurrency(row.maxVal)}
                         </span>
                       </div>
                     ) : (
-                      /* Normal factor row — 3-column grid */
-                      <div
-                        key={row.label}
-                        className="grid grid-cols-[1fr_80px_80px] items-center px-5 py-3 gap-2"
-                      >
-                        {/* Label + badge */}
+                      <div key={row.label} className="grid grid-cols-[1fr_80px_80px] items-center px-5 py-3 gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-sm text-gray-700 truncate">{row.label}</span>
                           <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            row.selected
-                              ? "bg-green-100 text-green-700"
-                              : "bg-orange-100 text-orange-700"
+                            row.selected ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
                           }`}>
                             {row.selected ? "Selected" : "Estimated"}
                           </span>
                         </div>
-
-                        {/* HIGH factor */}
                         <div className="text-right">
-                          <span className={`text-sm font-semibold tabular-nums ${
-                            row.maxVal >= 1 ? "text-green-700" : "text-red-500"
-                          }`}>
+                          <span className={`text-sm font-semibold tabular-nums ${row.maxVal >= 1 ? "text-green-700" : "text-red-500"}`}>
                             {formatFactor(row.maxVal)}
                           </span>
                         </div>
-
-                        {/* LOW factor */}
                         <div className="text-right">
-                          <span className={`text-sm font-semibold tabular-nums ${
-                            row.minVal >= 1 ? "text-green-700" : "text-red-500"
-                          }`}>
+                          <span className={`text-sm font-semibold tabular-nums ${row.minVal >= 1 ? "text-green-700" : "text-red-500"}`}>
                             {formatFactor(row.minVal)}
                           </span>
                         </div>
@@ -761,9 +777,6 @@ function MachineryValuationWizardInner() {
                     )
                   )}
                 </div>
-
-               
-
               </div>
             )}
 
