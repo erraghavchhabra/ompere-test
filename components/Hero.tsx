@@ -82,7 +82,7 @@ export default function Hero() {
     const script = document.createElement("script");
     script.id  = "google-places-script";
     // Replace YOUR_API_KEY with your actual Google Maps API key
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDyYY7COHZaRW3n2-H5wh5B5K7rsDx_kiw&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyC1E-lxBk9VBi_WhR_LVcL-QFwO4xYHOrk&libraries=places`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
@@ -104,11 +104,17 @@ export default function Hero() {
           fields: ["formatted_address", "name"],
         }
       );
+autocompleteRef.current.addListener("place_changed", () => {
+  const place = autocompleteRef.current.getPlace();
 
-      autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current!.getPlace();
-        setLocation(place.formatted_address ?? place.name ?? "");
-      });
+  console.log("PLACE SELECTED", place);
+
+  setLocation(
+    place.formatted_address ||
+    place.name ||
+    ""
+  );
+});
     };
 
     // Google may already be loaded
