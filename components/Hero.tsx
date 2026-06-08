@@ -82,7 +82,7 @@ export default function Hero() {
     const script = document.createElement("script");
     script.id  = "google-places-script";
     // Replace YOUR_API_KEY with your actual Google Maps API key
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyC1E-lxBk9VBi_WhR_LVcL-QFwO4xYHOrk&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
