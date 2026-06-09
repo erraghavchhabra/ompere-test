@@ -711,7 +711,7 @@ function MachineryValuationWizardInner() {
                       <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#444] mx-auto mt-2" />
                     </div>
                   </div>
-                  <div className="h-1 rounded-full bg-gradient-to-r from-lime-400 via-yellow-400 to-red-600" />
+                 <div className="h-1 rounded-full bg-gradient-to-l from-green-600 via-yellow-400 to-red-600" />
                 </div>
               )}
 
