@@ -81,6 +81,7 @@ function MachineryValuationWizardInner() {
 
   const nameFromUrl  = searchParams.get("name")  ?? "";
   const phoneFromUrl = searchParams.get("phone") ?? "";
+  const locationFromUrl = searchParams.get("location") ?? "";
 
   const [selectedBrand,          setSelectedBrand]          = useState(searchParams.get("brand_id")     ?? "");
   const [selectedCapacity,       setSelectedCapacity]       = useState(searchParams.get("capacity_kva") ?? "");
@@ -300,6 +301,7 @@ function MachineryValuationWizardInner() {
       const fd = new FormData();
       fd.append("name",            nameFromUrl);
       fd.append("phone",           phoneFromUrl);
+       fd.append("location",           locationFromUrl);
       fd.append("machine_type_id", MACHINE_TYPE_ID);
       fd.append("brand_id",        selectedBrand);
       fd.append("capacity_kva",    selectedCapacity);
@@ -709,7 +711,7 @@ function MachineryValuationWizardInner() {
                       <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#444] mx-auto mt-2" />
                     </div>
                   </div>
-                  <div className="h-1 rounded-full bg-gradient-to-l from-green-600 via-yellow-400 to-red-600" />
+                  <div className="h-1 rounded-full bg-gradient-to-r from-lime-400 via-yellow-400 to-red-600" />
                 </div>
               )}
 
