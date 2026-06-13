@@ -55,6 +55,7 @@ const years = Array.from(
 export default function Hero() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // ── Raw data ─────────────────────────────────────────────────────────────
   const [allRows, setAllRows] = useState<PriceRow[]>([]);
@@ -179,17 +180,39 @@ autocompleteRef.current.addListener("place_changed", () => {
 
   const handleCalculateClick = () => setShowModal(true);
 
-  const handleProceed = () => {
-    const params = new URLSearchParams();
-    params.set("machine_type_id", "1");
-    if (selectedBrand)    params.set("brand_id",     selectedBrand);
-    if (selectedCapacity) params.set("capacity_kva", selectedCapacity);
-    if (selectedYear)     params.set("year",          selectedYear);
-    if (name)             params.set("name",           name);
-    if (phone)            params.set("phone",          phone);
-    if (location)         params.set("location",       location);
-    router.push(`/machinery-valuation?${params.toString()}`);
-  };
+  const handleProceed = async () => {
+  if (!name.trim() || !phone.trim()) return;
+  setSubmitting(true);
+  try {
+    const fd = new FormData();
+    fd.append("name",            name);
+    fd.append("phone",           phone);
+    fd.append("location",        location);
+    fd.append("machine_type_id", "1");
+    fd.append("brand_id",        selectedBrand);
+    fd.append("capacity_kva",    selectedCapacity);
+    if (selectedYear) fd.append("make_year", selectedYear);
+
+    const res  = await fetch(API.valuationSubmit, { method: "POST", body: fd });
+    const data = await res.json();
+
+    if (data.status) {
+      const params = new URLSearchParams();
+      params.set("id",           String(data.id));          // ← carry the DB id
+      params.set("brand_id",     selectedBrand);
+      params.set("capacity_kva", selectedCapacity);
+      params.set("year",         selectedYear);
+      params.set("name",         name);
+      params.set("phone",        phone);
+      params.set("location",     location);
+      router.push(`/machinery-valuation?${params.toString()}`);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
@@ -392,12 +415,13 @@ autocompleteRef.current.addListener("place_changed", () => {
                   autoComplete="off"
                 />
               </div>
-              <button
-                onClick={handleProceed}
-                className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition"
-              >
-                Proceed
-              </button>
+             <button
+  onClick={handleProceed}
+  disabled={submitting || !name.trim() || phone.length < 10}
+  className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+>
+  {submitting ? "Saving..." : "Proceed"}
+</button>
             </div>
 
           </div>

@@ -79,6 +79,8 @@ function MachineryValuationWizardInner() {
 
   const MACHINE_TYPE_ID = "1";
 
+  const valuationId = searchParams.get("id") ?? "";
+
   const nameFromUrl  = searchParams.get("name")  ?? "";
   const phoneFromUrl = searchParams.get("phone") ?? "";
   const locationFromUrl = searchParams.get("location") ?? "";
@@ -294,40 +296,50 @@ function MachineryValuationWizardInner() {
     setUploadedPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async () => {
-    setSubmitError(null);
-    setSubmitting(true);
-    try {
-      const fd = new FormData();
-      fd.append("name",            nameFromUrl);
-      fd.append("phone",           phoneFromUrl);
-       fd.append("location",           locationFromUrl);
-      fd.append("machine_type_id", MACHINE_TYPE_ID);
-      fd.append("brand_id",        selectedBrand);
-      fd.append("capacity_kva",    selectedCapacity);
-      if (selectedYear)            fd.append("make_year",        selectedYear);
-      if (selectedHours)           fd.append("running_hours",    selectedHours);
-      if (selectedEngineCondition) fd.append("engine_condition", selectedEngineCondition);
-      if (priceResult?.price_new       != null) fd.append("price_new",       String(priceResult.price_new));
-      if (priceResult?.day2_price      != null) fd.append("day2_price",      String(priceResult.day2_price));
-      if (priceResult?.estimated_price != null) fd.append("estimated_price", String(priceResult.estimated_price));
-      if (priceResult?.year_factor     != null) fd.append("year_factor",     String(priceResult.year_factor));
-      if (priceResult?.hours_factor    != null) fd.append("hours_factor",    String(priceResult.hours_factor));
-      if (priceResult?.engine_factor   != null) fd.append("engine_factor",   String(priceResult.engine_factor));
-      fd.append("margin_high", String(getMarginHigh()));
-      fd.append("margin_low",  String(getMarginLow()));
-      uploadedImages.forEach((f) => fd.append("images[]", f));
-      const res  = await fetch(API.valuationSubmit, { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.status) setSubmitSuccess(true);
-      else setSubmitError(data.message || "Submission failed. Please try again.");
-    } catch (err) {
-      console.error(err);
-      setSubmitError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
+ const handleSubmit = async () => {
+  setSubmitError(null);
+  setSubmitting(true);
+  try {
+    const fd = new FormData();
+    // No name/phone/location — already saved in Hero step
+    if (selectedYear)            fd.append("make_year",        selectedYear);
+
+    
+ if (selectedHours) {
+      const hoursLabel = hourOptions.find((h) => String(h.id) === String(selectedHours))?.name ?? selectedHours;
+      fd.append("running_hours",    hoursLabel);        // "2000 to 3000" — for display
+      fd.append("running_hours_id", selectedHours);     // "3" — for DB factor lookup
     }
-  };
+    if (selectedEngineCondition) {
+      const engineLabel = engineOptions.find((e) => String(e.id) === String(selectedEngineCondition))?.name ?? selectedEngineCondition;
+      fd.append("engine_condition",    engineLabel);         // "Good" — for display
+      fd.append("engine_condition_id", selectedEngineCondition); // "2" — for DB factor lookup
+    }
+    if (priceResult?.price_new)       fd.append("price_new",       String(priceResult.price_new));
+    if (priceResult?.day2_price)      fd.append("day2_price",      String(priceResult.day2_price));
+    if (priceResult?.estimated_price) fd.append("estimated_price", String(priceResult.estimated_price));
+    if (priceResult?.year_factor)     fd.append("year_factor",     String(priceResult.year_factor));
+    if (priceResult?.hours_factor)    fd.append("hours_factor",    String(priceResult.hours_factor));
+    if (priceResult?.engine_factor)   fd.append("engine_factor",   String(priceResult.engine_factor));
+    fd.append("margin_high", String(getMarginHigh()));
+    fd.append("margin_low",  String(getMarginLow()));
+    uploadedImages.forEach((f) => fd.append("images[]", f));
+
+    // ← UPDATE not create
+   const res = await fetch(`${API.valuationUpdate}/${valuationId}/update`, {
+  method: "POST",
+  body: fd,
+});
+    const data = await res.json();
+    if (data.status) setSubmitSuccess(true);
+    else setSubmitError(data.message || "Update failed. Please try again.");
+  } catch (err) {
+    console.error(err);
+    setSubmitError("Something went wrong. Please try again.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // ── Compute price range using dynamic factors + settings margins ──────────
   const computePriceRange = (): { high: number; low: number } | null => {
