@@ -439,6 +439,8 @@ function MachineryValuationWizardInner() {
 
     return rows;
   };
+  const isOptionalEmpty = (val: string) => !val && !!selectedCapacity;
+
 
   const SelectSkeleton = () => (
     <div className="w-full h-12 rounded-xl bg-gray-100 animate-pulse" />
@@ -582,46 +584,74 @@ function MachineryValuationWizardInner() {
                     </div>
 
                     {/* RUNNING HOURS — dynamic */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">Running Hours</label>
-                      {loadingHours ? <SelectSkeleton /> : (
-                        <div className="relative">
-                          <select
-                            value={selectedHours}
-                            onChange={(e) => setSelectedHours(e.target.value)}
-                            disabled={!selectedCapacity}
-                            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
-                          >
-                            <option value="">Select Running Hours</option>
-                            {hourOptions.map((h) => (
-                              <option key={h.id} value={h.id}>{h.name}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                        </div>
-                      )}
-                    </div>
+                 <div>
+  <label className="block text-sm font-semibold text-gray-800 mb-2">
+    Running Hours
+    {isOptionalEmpty(selectedHours) && (
+      <span className="ml-2 text-[10px] font-semibold text-[#f07020] bg-orange-50 px-2 py-0.5 rounded-full animate-pulse">
+        Fills in better estimate
+      </span>
+    )}
+  </label>
+  {loadingHours ? <SelectSkeleton /> : (
+    <div className="relative">
+      {isOptionalEmpty(selectedHours) && (
+        <ChevronDown
+          className="bounce-arrow absolute -top-5 right-6 w-4 h-4 text-[#f07020]"
+        />
+      )}
+      <select
+        value={selectedHours}
+        onChange={(e) => setSelectedHours(e.target.value)}
+        disabled={!selectedCapacity}
+        className={`w-full h-12 px-4 rounded-xl border text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50 transition-all duration-300 ${
+          isOptionalEmpty(selectedHours) ? "optional-glow" : "border-gray-200"
+        }`}
+      >
+        <option value="">Select Running Hours</option>
+        {hourOptions.map((h) => (
+          <option key={h.id} value={h.id}>{h.name}</option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+    </div>
+  )}
+</div>
 
-                    {/* ENGINE CONDITION — dynamic */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">Engine Condition</label>
-                      {loadingEngines ? <SelectSkeleton /> : (
-                        <div className="relative">
-                          <select
-                            value={selectedEngineCondition}
-                            onChange={(e) => setSelectedEngineCondition(e.target.value)}
-                            disabled={!selectedCapacity}
-                            className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50"
-                          >
-                            <option value="">Select Engine Condition</option>
-                            {engineOptions.map((e) => (
-                              <option key={e.id} value={e.id}>{e.name}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                        </div>
-                      )}
-                    </div>
+                   {/* ENGINE CONDITION — dynamic */}
+<div>
+  <label className="block text-sm font-semibold text-gray-800 mb-2">
+    Engine Condition
+    {isOptionalEmpty(selectedEngineCondition) && (
+      <span className="ml-2 text-[10px] font-semibold text-[#f07020] bg-orange-50 px-2 py-0.5 rounded-full animate-pulse">
+        Fills in better estimate
+      </span>
+    )}
+  </label>
+  {loadingEngines ? <SelectSkeleton /> : (
+    <div className="relative">
+      {isOptionalEmpty(selectedEngineCondition) && (
+        <ChevronDown
+          className="bounce-arrow absolute -top-5 right-6 w-4 h-4 text-[#f07020]"
+        />
+      )}
+      <select
+        value={selectedEngineCondition}
+        onChange={(e) => setSelectedEngineCondition(e.target.value)}
+        disabled={!selectedCapacity}
+        className={`w-full h-12 px-4 rounded-xl border text-sm focus:outline-none focus:ring-1 focus:ring-[#f07020] appearance-none bg-white disabled:opacity-50 transition-all duration-300 ${
+          isOptionalEmpty(selectedEngineCondition) ? "optional-glow" : "border-gray-200"
+        }`}
+      >
+        <option value="">Select Engine Condition</option>
+        {engineOptions.map((e) => (
+          <option key={e.id} value={e.id}>{e.name}</option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+    </div>
+  )}
+</div>
 
                     {calcError && <p className="text-sm text-red-500 -mt-1">{calcError}</p>}
 
@@ -816,11 +846,36 @@ function MachineryValuationWizardInner() {
         </div>
       </div>
 
-      <div className="absolute top-0 right-0 w-72 h-72 bg-[#f07020]/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="absolute top-0 right-0 w-72 h-72 bg-[#f07020]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-72 h-72 bg-orange-200/20 rounded-full blur-3xl pointer-events-none" />
-    </section>
+
+    
+      <style jsx>{`
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(240, 112, 32, 0.4); }
+          50%       { box-shadow: 0 0 0 6px rgba(240, 112, 32, 0.0); }
+        }
+        @keyframes bounceArrow {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(4px); }
+        }
+        .optional-glow {
+          animation: pulseGlow 2s ease-in-out infinite;
+          border-color: #f07020 !important;
+        }
+        .bounce-arrow {
+          animation: bounceArrow 0.8s ease-in-out infinite;
+        }
+      `}</style>
+
+    </section> 
+   
+
+    
   );
+  
 }
+
 
 function WizardFallback() {
   return (

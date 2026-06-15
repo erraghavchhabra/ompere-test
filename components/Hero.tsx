@@ -56,6 +56,8 @@ export default function Hero() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [yearOptions, setYearOptions] = useState<{ id: string; name: string }[]>([]);
+const [loadingYears, setLoadingYears] = useState(false);
 
   // ── Raw data ─────────────────────────────────────────────────────────────
   const [allRows, setAllRows] = useState<PriceRow[]>([]);
@@ -88,6 +90,15 @@ export default function Hero() {
     script.defer = true;
     document.head.appendChild(script);
   }, []);
+
+  useEffect(() => {
+  setLoadingYears(true);
+  fetch(API.years)
+    .then((r) => r.json())
+    .then((data) => setYearOptions(data))
+    .catch(console.error)
+    .finally(() => setLoadingYears(false));
+}, []);
 
   // ── Init autocomplete when modal opens ────────────────────────────────────
   useEffect(() => {
@@ -136,6 +147,7 @@ autocompleteRef.current.addListener("place_changed", () => {
     fetch(API.priceNewAll)
       .then((r) => r.json())
       .then((rows: PriceRow[]) => {
+        console.log("rows",rows);
         setAllRows(rows);
 
         // Unique brands
@@ -215,6 +227,7 @@ autocompleteRef.current.addListener("place_changed", () => {
 };
 
   return (
+    
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
 
       {/* BACKGROUND */}
@@ -279,19 +292,19 @@ autocompleteRef.current.addListener("place_changed", () => {
                     <option key={kva} value={kva}>{kva} KVA</option>
                   ))}
                 </select>
-
-                {/* YEAR */}
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  disabled={!selectedCapacity}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
-                >
-                  <option value="">Select Year</option>
-                  {years.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
+<select
+  value={selectedYear}
+  onChange={(e) => setSelectedYear(e.target.value)}
+  disabled={!selectedCapacity || loadingYears}
+  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+>
+  <option value="">
+    {loadingYears ? "Loading…" : "Select Year"}
+  </option>
+  {yearOptions.map((y) => (
+    <option key={y.id} value={y.name}>{y.name}</option>
+  ))}
+</select>
 
                 {/* BUTTON */}
                 <button
