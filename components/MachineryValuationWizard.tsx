@@ -366,7 +366,10 @@ function MachineryValuationWizardInner() {
     const hoursFactorMin  = hoursSelected  && hourFactor   != null ? hourFactor   : 0.87;
     const engineFactors   = engineOptions.map((e) => toNum(e.factor)).filter((f): f is number => f !== null);
     const engineFactorMax = engineSelected && engineFactor != null ? engineFactor : (engineFactors.length ? Math.max(...engineFactors) : 1.0);
-    const engineFactorMin = engineSelected && engineFactor != null ? engineFactor : (engineFactors.length ? Math.min(...engineFactors) : 0.95);
+   const engineFactorMin =
+    engineSelected && engineFactor != null
+        ? engineFactor
+        : 0.95;
 
     const high = rd(baseDay2Price * marginHigh * yearFactorMax * hoursFactorMax * engineFactorMax);
     const low  = rd(baseDay2Price * marginLow  * yearFactorMin * hoursFactorMin * engineFactorMin);
@@ -431,7 +434,9 @@ function MachineryValuationWizardInner() {
           ? `Engine factor (${getEngineLabel(selectedEngineCondition)})`
           : "Engine factor (not selected)",
         maxVal:   engineSelected ? engineFactor : (engineOptions.length ? Math.max(...engineOptions.map((e) => toNum(e.factor) ?? 0)) : 1.05),
-        minVal:   engineSelected ? engineFactor : (engineOptions.length ? Math.min(...engineOptions.map((e) => toNum(e.factor) ?? 0)) : 0.95),
+        minVal: engineSelected
+    ? engineFactor
+    : 0.95,
         selected: engineSelected,
         color:    "text-blue-700",
       }
