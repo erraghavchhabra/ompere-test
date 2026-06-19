@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ChevronDown, UploadCloud, X, FileText } from "lucide-react";
+import {
+  ChevronDown,
+  UploadCloud,
+  X,
+  FileText,
+  CheckCircle2,
+} from "lucide-react";
 import { API } from "@/lib/api";
 
 interface FormData {
@@ -67,9 +73,12 @@ const validate = (formData: FormData): FormErrors => {
   }
 
   if (!formData.brand) errors.brand = "Please select a brand.";
-  if (!formData.capacity_range) errors.capacity_range = "Please select a capacity range.";
-  if (!formData.manufacturing_year) errors.manufacturing_year = "Please select a manufacturing year.";
-  if (!formData.running_hours) errors.running_hours = "Please select running hours.";
+  if (!formData.capacity_range)
+    errors.capacity_range = "Please select a capacity range.";
+  if (!formData.manufacturing_year)
+    errors.manufacturing_year = "Please select a manufacturing year.";
+  if (!formData.running_hours)
+    errors.running_hours = "Please select running hours.";
   if (!formData.condition) errors.condition = "Please select a condition.";
 
   return errors;
@@ -94,7 +103,9 @@ function useSelectOptions(url: string) {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [url]);
 
   return { options, loading };
@@ -167,9 +178,12 @@ function SelectField({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function SellRight() {
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof FormData, boolean>>>({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof FormData, boolean>>
+  >({});
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -178,14 +192,22 @@ export default function SellRight() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dynamic options from API
-  const { options: brandOptions, loading: brandsLoading } = useSelectOptions(API.brands);
-  const { options: capacityOptions, loading: capacitiesLoading } = useSelectOptions(API.capacities);
-  const { options: yearOptions, loading: yearsLoading } = useSelectOptions(API.years);
-  const { options: hoursOptions, loading: hoursLoading } = useSelectOptions(API.hours);
-  const { options: engineConditionOptions, loading: engineConditionsLoading } = useSelectOptions(API.engineConditions);
+  const { options: brandOptions, loading: brandsLoading } = useSelectOptions(
+    API.brands,
+  );
+  const { options: capacityOptions, loading: capacitiesLoading } =
+    useSelectOptions(API.capacities);
+  const { options: yearOptions, loading: yearsLoading } = useSelectOptions(
+    API.years,
+  );
+  const { options: hoursOptions, loading: hoursLoading } = useSelectOptions(
+    API.hours,
+  );
+  const { options: engineConditionOptions, loading: engineConditionsLoading } =
+    useSelectOptions(API.engineConditions);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const updated = { ...formData, [e.target.name]: e.target.value };
     setFormData(updated);
@@ -194,13 +216,14 @@ export default function SellRight() {
       const fieldErrors = validate(updated);
       setErrors((prev) => ({
         ...prev,
-        [e.target.name]: fieldErrors[e.target.name as keyof FormData] || undefined,
+        [e.target.name]:
+          fieldErrors[e.target.name as keyof FormData] || undefined,
       }));
     }
   };
 
   const handleBlur = (
-    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const name = e.target.name as keyof FormData;
     setTouched((prev) => ({ ...prev, [name]: true }));
@@ -223,7 +246,9 @@ export default function SellRight() {
       }
       valid.push({
         file,
-        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+        preview: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
       });
     });
 
@@ -231,7 +256,10 @@ export default function SellRight() {
     setUploadedFiles((prev) => {
       const combined = [...prev, ...valid];
       if (combined.length > MAX_FILES) {
-        setFileErrors((e) => [...e, `Only the first ${MAX_FILES} files are kept.`]);
+        setFileErrors((e) => [
+          ...e,
+          `Only the first ${MAX_FILES} files are kept.`,
+        ]);
         return combined.slice(0, MAX_FILES);
       }
       return combined;
@@ -252,7 +280,7 @@ export default function SellRight() {
   const handleSubmit = async () => {
     const allTouched = Object.keys(formData).reduce(
       (acc, key) => ({ ...acc, [key]: true }),
-      {} as Record<keyof FormData, boolean>
+      {} as Record<keyof FormData, boolean>,
     );
     setTouched(allTouched);
 
@@ -275,11 +303,16 @@ export default function SellRight() {
       const result = await response.json();
 
       if (result.status) {
-        alert("Thank you, we'll contact you soon.");
+        setShowSuccessModal(true);
+
         setFormData(INITIAL_FORM);
         setErrors({});
         setTouched({});
-        uploadedFiles.forEach(({ preview }) => { if (preview) URL.revokeObjectURL(preview); });
+
+        uploadedFiles.forEach(({ preview }) => {
+          if (preview) URL.revokeObjectURL(preview);
+        });
+
         setUploadedFiles([]);
         setFileErrors([]);
       } else {
@@ -301,6 +334,7 @@ export default function SellRight() {
     }`;
 
   return (
+    <>
     <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10">
       <h2 className="text-4xl font-bold text-[#1a1a1a] mb-10">
         Genset Information Form
@@ -308,48 +342,86 @@ export default function SellRight() {
 
       {/* ─── Your Information ─── */}
       <div className="mb-10">
-        <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">Your Information</h3>
+        <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">
+          Your Information
+        </h3>
         <div className="grid md:grid-cols-2 gap-6">
-
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name *</label>
-            <input type="text" name="full_name" value={formData.full_name}
-              onChange={handleChange} onBlur={handleBlur} placeholder="John Doe"
-              className={inputClass("full_name")} />
-            {errors.full_name && <p className="mt-1 text-sm text-red-500">{errors.full_name}</p>}
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              name="full_name"
+              value={formData.full_name}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="John Doe"
+              className={inputClass("full_name")}
+            />
+            {errors.full_name && (
+              <p className="mt-1 text-sm text-red-500">{errors.full_name}</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Email *</label>
-            <input type="email" name="email" value={formData.email}
-              onChange={handleChange} onBlur={handleBlur} placeholder="john@example.com"
-              className={inputClass("email")} />
-            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Email *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="john@example.com"
+              className={inputClass("email")}
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Phone Number *</label>
-            <input type="text" name="phone_number" value={formData.phone_number}
-              onChange={handleChange} onBlur={handleBlur} placeholder="+91 98765 43210"
-              className={inputClass("phone_number")} />
-            {errors.phone_number && <p className="mt-1 text-sm text-red-500">{errors.phone_number}</p>}
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Phone Number *
+            </label>
+            <input
+              type="text"
+              name="phone_number"
+              value={formData.phone_number}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="+91 98765 43210"
+              className={inputClass("phone_number")}
+            />
+            {errors.phone_number && (
+              <p className="mt-1 text-sm text-red-500">{errors.phone_number}</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Company Name</label>
-            <input type="text" name="company_name" value={formData.company_name}
-              onChange={handleChange} placeholder="Your Company"
-              className={inputClass("company_name")} />
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              name="company_name"
+              value={formData.company_name}
+              onChange={handleChange}
+              placeholder="Your Company"
+              className={inputClass("company_name")}
+            />
           </div>
-
         </div>
       </div>
 
       {/* ─── Genset Details ─── */}
       <div className="mb-10">
-        <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">Genset Details</h3>
+        <h3 className="text-2xl font-bold text-[#1a1a1a] mb-6">
+          Genset Details
+        </h3>
         <div className="grid md:grid-cols-2 gap-6">
-
           {/* Brand — sends name */}
           <SelectField
             label="Brand"
@@ -415,7 +487,6 @@ export default function SellRight() {
               onBlur={handleBlur}
             />
           </div>
-
         </div>
       </div>
 
@@ -423,17 +494,27 @@ export default function SellRight() {
       <div className="mb-10">
         <h3 className="text-2xl font-bold text-[#1a1a1a] mb-1">
           Photos & Documents
-          <span className="ml-2 text-sm font-normal text-gray-400">(Optional)</span>
+          <span className="ml-2 text-sm font-normal text-gray-400">
+            (Optional)
+          </span>
         </h3>
         <p className="text-sm text-gray-500 mb-5">
-          Upload photos or inspection reports of your genset. JPG, PNG, or PDF · Max 5 MB per file · Up to 6 files.
+          Upload photos or inspection reports of your genset. JPG, PNG, or PDF ·
+          Max 5 MB per file · Up to 6 files.
         </p>
 
         {/* Drop Zone */}
         <div
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
           onDragLeave={() => setIsDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setIsDragOver(false); processFiles([...e.dataTransfer.files]); }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+            processFiles([...e.dataTransfer.files]);
+          }}
           onClick={() => fileInputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed cursor-pointer transition-colors px-6 py-10 ${
             isDragOver
@@ -443,8 +524,12 @@ export default function SellRight() {
         >
           <UploadCloud className="w-10 h-10 text-[#f07020]" />
           <div className="text-center">
-            <p className="text-sm font-semibold text-[#f07020]">Click to upload or drag & drop</p>
-            <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF · Max 5 MB per file</p>
+            <p className="text-sm font-semibold text-[#f07020]">
+              Click to upload or drag & drop
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              JPG, PNG, PDF · Max 5 MB per file
+            </p>
           </div>
           <input
             ref={fileInputRef}
@@ -459,33 +544,48 @@ export default function SellRight() {
         {fileErrors.length > 0 && (
           <ul className="mt-3 space-y-1">
             {fileErrors.map((err, i) => (
-              <li key={i} className="text-xs text-red-500">{err}</li>
+              <li key={i} className="text-xs text-red-500">
+                {err}
+              </li>
             ))}
           </ul>
         )}
 
         {uploadedFiles.length > 0 && (
           <p className="text-xs text-gray-400 mt-3">
-            {uploadedFiles.length} / {MAX_FILES} file{uploadedFiles.length !== 1 ? "s" : ""} selected
+            {uploadedFiles.length} / {MAX_FILES} file
+            {uploadedFiles.length !== 1 ? "s" : ""} selected
           </p>
         )}
 
         {uploadedFiles.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
             {uploadedFiles.map(({ file, preview }, idx) => (
-              <div key={idx} className="relative rounded-2xl border border-gray-100 overflow-hidden bg-gray-50 group">
+              <div
+                key={idx}
+                className="relative rounded-2xl border border-gray-100 overflow-hidden bg-gray-50 group"
+              >
                 {preview ? (
-                  <img src={preview} alt={file.name} className="w-full h-24 object-cover" />
+                  <img
+                    src={preview}
+                    alt={file.name}
+                    className="w-full h-24 object-cover"
+                  />
                 ) : (
                   <div className="w-full h-24 flex flex-col items-center justify-center bg-orange-50 text-[#f07020]">
                     <FileText className="w-8 h-8" />
                     <span className="text-[10px] font-semibold mt-1">PDF</span>
                   </div>
                 )}
-                <p className="text-[11px] text-gray-500 px-2 py-1.5 truncate">{file.name}</p>
+                <p className="text-[11px] text-gray-500 px-2 py-1.5 truncate">
+                  {file.name}
+                </p>
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFile(idx);
+                  }}
                   className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label="Remove file"
                 >
@@ -506,5 +606,60 @@ export default function SellRight() {
         {loading ? "Submitting..." : "Submit Information"}
       </button>
     </div>
+  {showSuccessModal && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+    <div className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white shadow-2xl">
+
+      {/* Top Gradient */}
+      <div className="h-3 bg-gradient-to-r from-[#f07020] to-[#ff9a57]" />
+
+      <div className="p-10 text-center">
+
+        <div className="relative mx-auto mb-8">
+          <div className="absolute inset-0 animate-ping rounded-full bg-green-200 opacity-30" />
+
+          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle2 className="h-12 w-12 text-green-600" />
+          </div>
+        </div>
+
+        <h3 className="text-4xl font-bold text-gray-900 mb-4">
+          Thank You!
+        </h3>
+
+        <p className="text-gray-600 text-lg leading-relaxed mb-8">
+          Your generator information has been submitted successfully.
+          Our team will review your details and contact you within
+          <span className="font-semibold text-[#f07020]"> 4 hours</span>.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="rounded-2xl bg-orange-50 p-3">
+            <p className="text-xs text-gray-500">Response</p>
+            <p className="font-bold text-[#f07020]">4 Hours</p>
+          </div>
+
+          <div className="rounded-2xl bg-orange-50 p-3">
+            <p className="text-xs text-gray-500">Inspection</p>
+            <p className="font-bold text-[#f07020]">Free</p>
+          </div>
+
+          <div className="rounded-2xl bg-orange-50 p-3">
+            <p className="text-xs text-gray-500">Payment</p>
+            <p className="font-bold text-[#f07020]">48 Hours</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowSuccessModal(false)}
+          className="w-full h-14 rounded-2xl bg-[#f07020] hover:bg-[#d85f14] text-white font-semibold text-lg transition"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+    </>
   );
 }

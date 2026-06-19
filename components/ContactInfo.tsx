@@ -11,71 +11,80 @@ import { getSettings } from "@/lib/getSettings";
 
 export default function ContactInfo() {
   const [settings, setSettings] = useState<any>({});
-   useEffect(() => {
-  
+
+  useEffect(() => {
     const fetchSettings = async () => {
-  
       const data = await getSettings();
-      console.log("data",data);
+      console.log("data", data);
       setSettings(data);
-  
     };
-  
     fetchSettings();
-  
   }, []);
+
   const items = [
-  {
-    icon: Phone,
-    title: "Phone",
-    value: settings.phone || "",
-    link: `tel:${settings.phone || ""}`,
-    color: "text-green-600",
-    bg: "bg-green-50",
-    border: "border-green-100",
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    value: settings.email || "",
-    link: `mailto:${settings.email || ""}`,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-  },
-  {
-    icon: MapPin,
-    title: "Address",
-    value: settings.address || "",
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-    border: "border-orange-100",
-  },
-  {
-    icon: Clock,
-    title: "Business Hours",
-    value: settings.business_hours || "",
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    border: "border-purple-100",
-  },
-];
+    {
+      icon: Phone,
+      title: "Phone",
+      value: settings.phone || "",
+      link: `tel:${settings.phone || ""}`,
+      color: "text-green-600",
+      bg: "bg-green-50",
+      border: "border-green-100",
+    },
+    {
+      icon: Mail,
+      title: "Email",
+      value: settings.email || "",
+      link: `mailto:${settings.email || ""}`,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+    },
+    {
+      icon: Clock,
+      title: "Business Hours",
+      value: settings.business_hours || "",
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      border: "border-purple-100",
+    },
+    {
+      icon: MapPin,
+      title: "Indore Office",
+      value: settings.address || "",
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      border: "border-orange-100",
+    },
+    {
+      icon: MapPin,
+      title: "Navi Mumbai Office",
+      value: settings.address2 || "",
+      color: "text-red-600",
+      bg: "bg-red-50",
+      border: "border-red-100",
+    },
+    {
+      icon: MapPin,
+      title: "Bangalore Office",
+      value: settings.address3 || "",
+      color: "text-teal-600",
+      bg: "bg-teal-50",
+      border: "border-teal-100",
+    },
+  ];
 
   return (
     <section className="w-full py-16">
       <div className="max-w-6xl mx-auto px-6">
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item, i) => {
             const Icon = item.icon;
-
             return (
               <div
                 key={i}
                 className="bg-white border border-gray-200 rounded-xl p-6 text-center shadow-sm hover:shadow-md transition duration-300"
               >
-
                 {/* ICON */}
                 <div className="flex justify-center mb-4">
                   <div
@@ -103,13 +112,10 @@ export default function ContactInfo() {
                     {item.value}
                   </p>
                 )}
-
               </div>
             );
           })}
-
         </div>
-
       </div>
     </section>
   );

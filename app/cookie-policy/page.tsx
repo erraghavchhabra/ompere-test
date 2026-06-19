@@ -1,4 +1,22 @@
+"use client";
+import { getSettings } from "@/lib/getSettings";
+import { useEffect, useState } from "react";
+
 export default function CookiePolicyPage() {
+  const [settings, setSettings] = useState<any>({});
+   useEffect(() => {
+  
+    const fetchSettings = async () => {
+  
+      const data = await getSettings();
+      console.log("data",data);
+      setSettings(data);
+  
+    };
+  
+    fetchSettings();
+  
+  }, []);
   return (
     <section className="bg-gradient-to-b from-white to-orange-50/40 py-20">
       <div className="max-w-5xl mx-auto px-6">
@@ -149,8 +167,8 @@ export default function CookiePolicyPage() {
             </p>
 
             <div className="mt-5 space-y-2 text-gray-700">
-              <p>Email: info@ompere.com</p>
-              <p>Phone: +91 98765 43210</p>
+              <p>Email:  {settings.email || ""}</p>
+              <p>Phone:  {settings.phone || ""}</p>
             </div>
           </div>
         </div>

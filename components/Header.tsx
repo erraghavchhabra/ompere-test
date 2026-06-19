@@ -125,10 +125,10 @@ export default function Header() {
           </nav>
 
           <Link
-            href="/contact"
+            href="/price-calculator"
             className="hidden lg:inline-flex bg-[#111111] text-white px-5 py-3 rounded-full font-medium hover:bg-[#f07020] transition"
           >
-            Get Started
+            Get a Quote
           </Link>
 
           <button

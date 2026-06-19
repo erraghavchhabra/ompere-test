@@ -383,11 +383,11 @@ export default function Contact() {
 
             {/* RIGHT SIDE - MAP */}
             <div className="rounded-2xl overflow-hidden shadow-xl border border-orange-100 h-full min-h-[500px]">
-              <iframe
-                src="https://www.google.com/maps/embed/v1/place?key=YOUR_GOOGLE_MAPS_API_KEY&q=123+Industrial+Area,+Sector+5,+Gurgaon,+Haryana+-+122001"
-                className="w-full h-full min-h-[500px]"
-                loading="lazy"
-              ></iframe>
+             <iframe
+  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&q=123+Industrial+Area,+Sector+5,+Gurgaon,+Haryana+-+122001`}
+  className="w-full h-full min-h-[500px]"
+  loading="lazy"
+></iframe>
             </div>
 
           </div>
