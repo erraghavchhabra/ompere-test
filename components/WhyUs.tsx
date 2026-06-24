@@ -56,7 +56,7 @@ export default function WhyUs() {
         <div className="text-center max-w-3xl mx-auto mb-16">
         
 
-          <h2 className="text-4xl md:text-4xl font-bold text-[#1a1a1a]  mb-5">
+          <h2 className="text-2xl md:text-4xl font-bold text-[#1a1a1a]  mb-5">
             Why Choose Us?
           </h2>
 

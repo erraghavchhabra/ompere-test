@@ -90,7 +90,11 @@ function useContactSettings(): ContactSettings | null {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function SellLeft() {
+interface SellLeftProps {
+  settings: any;
+}
+
+export default function SellLeft({ settings }: SellLeftProps) {
   const contact = useContactSettings();
 
   // Derived link values (safe when contact is null — links are hidden)
@@ -197,6 +201,7 @@ export default function SellLeft() {
           </div>
         </div>
       </div>
+      
     </div>
   );
 }

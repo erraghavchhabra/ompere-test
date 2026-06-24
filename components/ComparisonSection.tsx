@@ -44,7 +44,7 @@ export default function ComparisonSection() {
       <div className="max-w-7xl mx-auto px-6">
         {/* Heading */}
         <div className="text-center mb-14">
-          <h2 className="text-4xl md:text-4xl font-bold text-[#1a1a1a] leading-tight">
+          <h2 className="text-2xl md:text-4xl font-bold text-[#1a1a1a] leading-tight">
             Why Sell to a Digital Platform Instead of a Scrap Dealer?
           </h2>
         </div>

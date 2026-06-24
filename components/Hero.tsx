@@ -337,7 +337,7 @@ autocompleteRef.current.addListener("place_changed", () => {
                     {slide.badge}
                   </span>
 
-                  <h1 className="font-heading text-4xl md:text-5xl text-white font-bold leading-tight max-w-3xl mb-6">
+                  <h1 className="font-heading text-2xl md:text-5xl text-white font-bold leading-tight max-w-3xl mb-6">
                     {slide.title}
                   </h1>
 
@@ -345,7 +345,7 @@ autocompleteRef.current.addListener("place_changed", () => {
                     {slide.desc}
                   </p>
 
-                  <div className="grid sm:grid-cols-2 text-white gap-4 mb-8 text-sm max-w-2xl">
+                  <div className="grid sm:grid-cols-2 text-white gap-2 md:gap-4 mb-8 text-sm max-w-2xl">
                     {slide.points.map((item) => (
                       <div key={item} className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-[#f07020]" />

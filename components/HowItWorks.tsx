@@ -19,7 +19,7 @@ export default function HowItWorks() {
             How It Works
           </span>
 
-          <h2 className="text-4xl md:text-4xl font-bold text-[#1a1a1a]">
+          <h2 className="text-2xl md:text-4xl font-bold text-[#1a1a1a]">
            Selling Your Machinery is Now
 Simple, Transparent & Hassle-Free
           </h2>
@@ -33,7 +33,7 @@ Simple, Transparent & Hassle-Free
             href="/how-it-works"
             className="inline-flex items-center gap-2 border border-[#f07020] text-[#f07020] hover:bg-[#f07020] hover:text-white px-8 py-4 rounded-full font-medium transition-all duration-300"
           >
-            See our full 6-step verification process
+            Full 6-step verification process
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>

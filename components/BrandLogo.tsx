@@ -1,0 +1,85 @@
+"use client";
+
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+
+import "swiper/css";
+
+const brands = [
+  { name: "Cummins", logo: "/assets/img/cummins.png" },
+  { name: "Kirloskar", logo: "/assets/img/kirloskar.png" },
+  { name: "Mahindra Powerol", logo: "/assets/img/mahindra.png" },
+  { name: "Ashok Leyland", logo: "/assets/img/ashok.png" },
+  { name: "Cummins", logo: "/assets/img/cummins.png" },
+  { name: "Kirloskar", logo: "/assets/img/kirloskar.png" },
+  { name: "Mahindra Powerol", logo: "/assets/img/mahindra.png" },
+  { name: "Ashok Leyland", logo: "/assets/img/ashok.png" },
+];
+
+export default function BrandLogo() {
+  return (
+    <section className="relative py-20 overflow-hidden bg-[#fff7ec]">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Heading */}
+
+        <div className="text-center mb-14">
+          <span className="inline-flex px-4 py-2 rounded-full bg-orange-100 text-[#f07020] text-sm font-semibold uppercase tracking-wider">
+            Trusted Brands
+          </span>
+
+          <h2 className="mt-5 text-2xl md:text-5xl font-bold text-[#1a1a1a]">
+            We Deal With Leading
+            <br />
+            Generator Brands
+          </h2>
+
+          <p className="mt-5 max-w-2xl mx-auto text-gray-500 text-lg">
+            We buy and sell diesel generators from India's most trusted
+            manufacturers with transparent pricing and professional evaluation.
+          </p>
+        </div>
+
+        <Swiper
+          modules={[Autoplay]}
+          loop={true}
+          speed={3000}
+          autoplay={{
+            delay: 0,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
+          }}
+          spaceBetween={25}
+          breakpoints={{
+            320: {
+              slidesPerView: 2,
+            },
+            640: {
+              slidesPerView: 3,
+            },
+            768: {
+              slidesPerView: 4,
+            },
+            1024: {
+              slidesPerView: 5,
+            },
+          }}
+        >
+          {brands.map((brand, index) => (
+            <SwiperSlide key={index}>
+              <div className="group h-20 md:h-24 mt-3 mb-3 bg-white border border-orange-100 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg p-4">
+                <img
+                  src={brand.logo}
+                  alt={brand.name}
+                  className="max-h-10 md:max-h-12  w-auto object-contain grayscale opacity-70 transition-all duration-300 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
+                />
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+
+      <div className="absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+      <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+    </section>
+  );
+}

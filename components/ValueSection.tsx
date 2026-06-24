@@ -17,7 +17,7 @@ export default function ValueSection() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid lg:grid-cols-2 gap-14 items-center">
           {/* LEFT IMAGE */}
-          <div className="relative">
+          <div className="relative order-2 lg:order-2">
             <div className="absolute -inset-4 bg-[#f07020]/10 blur-3xl rounded-full" />
 
             <div className="relative overflow-hidden">
@@ -32,12 +32,12 @@ export default function ValueSection() {
           </div>
 
           {/* RIGHT CONTENT */}
-          <div>
+          <div className="order-1 lg:order-1">
             <span className="inline-block bg-[#f07020]/10 text-[#f07020] px-4 py-2 rounded-full text-sm font-semibold mb-4">
               Why Our Process Works
             </span>
 
-            <h2 className="text-4xl md:text-4xl font-bold text-gray-900 leading-tight mb-6">
+            <h2 className="text-2xl md:text-4xl font-bold text-gray-900 leading-tight mb-6">
               Your Genset Deserves More Than Scrap Value
             </h2>
 

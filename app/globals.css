@@ -18,7 +18,9 @@
     --foreground: #ededed;
   }
 }
-
+html {
+    scroll-behavior: smooth;
+}
 body {
   background: var(--background);
   color: var(--foreground);
@@ -33,4 +35,11 @@ p{
 }
 button{
   cursor: pointer;
+}
+.swiper-wrapper {
+    transition-timing-function: linear !important;
+}
+
+.swiper {
+    overflow: visible;
 }

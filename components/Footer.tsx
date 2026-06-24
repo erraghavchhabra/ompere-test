@@ -16,7 +16,6 @@ import { getSettings } from "@/lib/getSettings";
 /* SAME LINKS AS HEADER */
 
 const navLinks = [
- 
   { name: "About Us", href: "/about" },
   { name: "How It Works", href: "/how-it-works" },
   { name: "I Want to Sell", href: "/sell" },
@@ -25,7 +24,6 @@ const navLinks = [
   { name: "Blog", href: "/blogs" },
   { name: "Contact Us", href: "/contact" },
 ];
- 
 
 const legalLinks = [
   { name: "Privacy Policy", href: "/privacy-policy" },
@@ -35,23 +33,16 @@ const legalLinks = [
   { name: "Contact Us", href: "/contact" },
 ];
 
-
-
 export default function Footer() {
-
   const [settings, setSettings] = useState<any>({});
-   useEffect(() => {
-  
+  useEffect(() => {
     const fetchSettings = async () => {
-  
       const data = await getSettings();
-      console.log("data",data);
+      console.log("data", data);
       setSettings(data);
-  
     };
-  
+
     fetchSettings();
-  
   }, []);
   return (
     <footer className="relative bg-[#111111] text-white ">
@@ -139,13 +130,11 @@ export default function Footer() {
                   <MapPin className="w-5 h-5 text-[#f07020]" />
                 </div>
 
-                <p className="leading-7">
-                {settings.address || ""}
-                </p>
+                <p className="leading-7">{settings.address || ""}</p>
               </div>
 
               <a
-                 href={`tel:${settings.phone || ""}`}
+                href={`tel:${settings.phone || ""}`}
                 className="flex items-center gap-4 hover:text-[#f07020] transition"
               >
                 <div className="w-11 h-11 rounded-2xl bg-[#f07020]/10 flex items-center justify-center flex-shrink-0">
@@ -200,17 +189,15 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      
-<a
-  href="https://wa.me/919876543210"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.35)] hover:scale-110 transition-all duration-300"
->
-  <FaWhatsapp className="w-7 h-7 text-white" />
-</a>
+
+      <a
+        href="https://wa.me/919111160460"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.35)] hover:scale-110 transition-all duration-300"
+      >
+        <FaWhatsapp className="w-7 h-7 text-white" />
+      </a>
     </footer>
-    
   );
-  
 }

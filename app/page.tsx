@@ -5,17 +5,18 @@ import ComparisonSection from "@/components/ComparisonSection";
 import HowItWorks from "@/components/HowItWorks";
 import Testimonials from "@/components/Testimonials";
 import FinalCTA from "@/components/FinalCTA";
+import BrandLogo from "@/components/BrandLogo";
 export default function Home() {
   return (
     <>
       <Hero />
-      <WhyUs />
       <ValueSection />
+      <WhyUs />
       <ComparisonSection />
       <HowItWorks />
-{/* <Testimonials /> */}
-      <FinalCTA />
-
+      <BrandLogo />
+      <Testimonials />
+      {/* <FinalCTA />  */}
     </>
   );
 }

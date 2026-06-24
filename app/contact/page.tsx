@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContactInfo from "@/components/ContactInfo";
 import { API } from "@/lib/api";
-
+import { getSettings } from "@/lib/getSettings";
+import { toast } from "react-hot-toast";
 type FormDataType = {
   name: string;
   contact_number: string;
@@ -30,9 +31,7 @@ const validate = (formData: FormDataType): ErrorsType => {
   // Contact Number
   if (!formData.contact_number.trim()) {
     errors.contact_number = "Contact number is required.";
-  } else if (
-    !/^\+?[0-9\s\-().]{7,15}$/.test(formData.contact_number.trim())
-  ) {
+  } else if (!/^\+?[0-9\s\-().]{7,15}$/.test(formData.contact_number.trim())) {
     errors.contact_number = "Enter a valid contact number.";
   }
 
@@ -44,9 +43,7 @@ const validate = (formData: FormDataType): ErrorsType => {
   // Email
   if (!formData.email.trim()) {
     errors.email = "Email is required.";
-  } else if (
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
-  ) {
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
     errors.email = "Enter a valid email address.";
   }
 
@@ -63,6 +60,15 @@ const validate = (formData: FormDataType): ErrorsType => {
 };
 
 export default function Contact() {
+  const [settings, setSettings] = useState<any>({});
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const data = await getSettings();
+      setSettings(data);
+    };
+    fetchSettings();
+  }, []);
 
   const [loading, setLoading] = useState(false);
 
@@ -82,9 +88,8 @@ export default function Contact() {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
-
     const updated = {
       ...formData,
       [e.target.name]: e.target.value,
@@ -93,7 +98,6 @@ export default function Contact() {
     setFormData(updated);
 
     if (touched[e.target.name]) {
-
       const fieldErrors = validate(updated);
 
       setErrors((prev) => ({
@@ -106,9 +110,8 @@ export default function Contact() {
   const handleBlur = (
     e: React.FocusEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
-
     setTouched((prev) => ({
       ...prev,
       [e.target.name]: true,
@@ -122,10 +125,7 @@ export default function Contact() {
     }));
   };
 
-  const handleSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const allTouched = Object.keys(formData).reduce(
@@ -133,7 +133,7 @@ export default function Contact() {
         ...acc,
         [key]: true,
       }),
-      {} as Record<string, boolean>
+      {} as Record<string, boolean>,
     );
 
     setTouched(allTouched);
@@ -147,7 +147,6 @@ export default function Contact() {
     setLoading(true);
 
     try {
-
       const response = await fetch(API.contact, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,8 +156,7 @@ export default function Contact() {
       const result = await response.json();
 
       if (result.status) {
-
-        alert("Contact form submitted successfully");
+        toast.success("Contact form submitted successfully!");
 
         setFormData({
           name: "",
@@ -171,16 +169,12 @@ export default function Contact() {
 
         setErrors({});
         setTouched({});
-
       } else {
-        alert("Something went wrong");
+        toast.error("Something went wrong. Please try again.");
       }
-
     } catch (error) {
-
       console.log(error);
-      alert("Server Error");
-
+      toast.error("Server Error. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -224,7 +218,6 @@ export default function Contact() {
       <section className="w-full py-20 bg-gradient-to-t from-white to-orange-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-start">
-
             {/* LEFT SIDE - FORM */}
             <div className="bg-white shadow-xl rounded-2xl p-10 border border-orange-100">
               <h2 className="text-3xl font-bold text-gray-900 mb-8">
@@ -232,7 +225,6 @@ export default function Contact() {
               </h2>
 
               <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-
                 {/* Name */}
                 <div>
                   <input
@@ -246,9 +238,7 @@ export default function Contact() {
                   />
 
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.name}
-                    </p>
+                    <p className="mt-1 text-sm text-red-500">{errors.name}</p>
                   )}
                 </div>
 
@@ -303,9 +293,7 @@ export default function Contact() {
                   />
 
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.email}
-                    </p>
+                    <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                   )}
                 </div>
 
@@ -323,9 +311,7 @@ export default function Contact() {
 
                   <div className="flex justify-between items-center mt-1">
                     {errors.message ? (
-                      <p className="text-sm text-red-500">
-                        {errors.message}
-                      </p>
+                      <p className="text-sm text-red-500">{errors.message}</p>
                     ) : (
                       <span />
                     )}
@@ -338,7 +324,6 @@ export default function Contact() {
 
                 {/* Availability */}
                 <div className="space-y-2">
-
                   <p className="font-semibold text-gray-800">
                     Best Time to Contact You
                   </p>
@@ -377,19 +362,17 @@ export default function Contact() {
                 >
                   {loading ? "Submitting..." : "Send Message"}
                 </button>
-
               </form>
             </div>
 
             {/* RIGHT SIDE - MAP */}
             <div className="rounded-2xl overflow-hidden shadow-xl border border-orange-100 h-full min-h-[500px]">
-             <iframe
-  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&q=123+Industrial+Area,+Sector+5,+Gurgaon,+Haryana+-+122001`}
-  className="w-full h-full min-h-[500px]"
-  loading="lazy"
-></iframe>
+              <iframe
+                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&q=${encodeURIComponent(settings.address)}`}
+                className="w-full h-full min-h-[500px]"
+                loading="lazy"
+              />
             </div>
-
           </div>
         </div>
       </section>
