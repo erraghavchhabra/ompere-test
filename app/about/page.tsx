@@ -6,6 +6,7 @@ import MissionVisionStory from "@/components/aboutComp/MissionVisionStory";
 import CoreValues from "@/components/aboutComp/CoreValues";
 import WhyPartnerUs from "@/components/aboutComp/WhyPartnerUs";
 import { API } from "@/lib/api";
+import AboutContent from "@/components/aboutComp/aboutContent";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -28,54 +29,17 @@ export default async function AboutPage() {
 
   return (
     <main className="bg-white text-gray-900">
- <AboutHeader/>
+
       {page.sections?.map((section: any) => {
         switch (section.section_type) {
 
-          case "about_header":
+          case "content":
             return (
-              <AboutHeader/>
+              <AboutContent   key={section.id}
+                data={section.section_data}/>
             );
 
-          case "about_info":
-            return (
-              <AboutInfo
-                key={section.id}
-                data={section.section_data}
-              />
-            );
-
-          case "stats_bar":
-            return (
-              <StatsBar
-                key={section.id}
-                data={section.section_data}
-              />
-            );
-
-          case "mission_vision":
-            return (
-              <MissionVisionStory
-                key={section.id}
-                data={section.section_data}
-              />
-            );
-
-          case "core_values":
-            return (
-              <CoreValues
-                key={section.id}
-                data={section.section_data}
-              />
-            );
-
-          case "why_partner_us":
-            return (
-              <WhyPartnerUs
-                key={section.id}
-                data={section.section_data}
-              />
-            );
+         
 
           default:
             return null;
