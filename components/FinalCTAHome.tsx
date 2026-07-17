@@ -25,7 +25,7 @@ export default function FinalCTAHome() {
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                href="/calculator"
+                href="/price-calculator"
                 className="inline-flex items-center justify-center gap-2 bg-white text-[#f07020] hover:bg-orange-50 px-8 py-4 rounded-full font-semibold transition shadow-lg"
               >
                 Calculate Price Now
@@ -33,7 +33,7 @@ export default function FinalCTAHome() {
               </Link>
 
               <Link
-                href="/submit-genset"
+                href="/sell"
                 className="inline-flex items-center justify-center border border-white/60 text-white hover:bg-white hover:text-[#f07020] px-8 py-4 rounded-full font-semibold transition"
               >
                 Submit Your Genset
