@@ -43,3 +43,83 @@ button{
 .swiper {
     overflow: visible;
 }
+.final-cta {
+    background: linear-gradient(to bottom right, #f07020 0%, #ff9b5e 100%);
+    padding: 72px 24px;
+    text-align: center;
+  }
+
+  .final-cta h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+
+  .final-cta p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.7;
+    max-width: 580px;
+    margin: 0 auto 32px;
+  }
+
+  .final-cta-actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .final-cta .btn-primary {
+    display: inline-block;
+    background: #fff;
+    color: #f07020;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .final-cta .btn-primary:hover {
+    background: #f3f3f3;
+  }
+
+  .final-cta .btn-ghost {
+    display: inline-block;
+    background: transparent;
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .final-cta .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  @media (max-width: 700px) {
+    .final-cta {
+      padding: 48px 24px;
+    }
+
+    .final-cta h2 {
+      font-size: 24px;
+    }
+
+    .final-cta-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .final-cta .btn-primary,
+    .final-cta .btn-ghost {
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+  }

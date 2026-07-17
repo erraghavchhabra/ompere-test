@@ -24,8 +24,29 @@ export default function HowItWorks() {
 Simple, Transparent & Hassle-Free
           </h2>
         </div>
+{/* Timeline */}
+        <div className="relative">
+          {/* Connecting Line */}
+          <div className="hidden md:block absolute top-8 left-0 right-0 h-[2px] bg-orange-100" />
 
-       
+          <div className="grid md:grid-cols-3 gap-10 relative">
+            {steps.map((step, index) => (
+              <div key={index} className="text-center relative">
+                {/* Step Number Circle */}
+                <div className="relative z-10 mx-auto w-16 h-16 rounded-full bg-white border-4 border-[#f07020] flex items-center justify-center text-[#f07020] font-bold text-lg shadow-lg">
+                  0{index + 1}
+                </div>
+
+                {/* Content */}
+                <div className="mt-6">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {step}
+                  </h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* CTA Button */}
         <div className="text-center mt-14">

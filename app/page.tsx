@@ -4,19 +4,19 @@ import ValueSection from "@/components/ValueSection";
 import ComparisonSection from "@/components/ComparisonSection";
 import HowItWorks from "@/components/HowItWorks";
 import Testimonials from "@/components/Testimonials";
-import FinalCTA from "@/components/FinalCTA";
+import FinalCTAHome from "@/components/FinalCTAHome";
 import BrandLogo from "@/components/BrandLogo";
 export default function Home() {
   return (
     <>
       <Hero />
+      <BrandLogo />
       <ValueSection />
       <WhyUs />
       <ComparisonSection />
       <HowItWorks />
-      <BrandLogo />
       <Testimonials />
-      {/* <FinalCTA />  */}
+    <FinalCTAHome /> 
     </>
   );
 }

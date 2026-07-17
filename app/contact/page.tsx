@@ -186,7 +186,25 @@ export default function Contact() {
         ? "border-red-400 focus:ring-red-400"
         : "border-gray-200 focus:ring-[#f07020]"
     }`;
+  const offices = [
+    {
+      name: "Indore Office",
+      address:
+        "Plot No. 213, Sector D, Scheme No. 71, Indore, Madhya Pradesh 452009 India",
+      primary: true,
+    },
+    {
+      name: "Navi Mumbai Office",
+      address:
+        "Basant Villa CHS, Flat 204, Sector-19, Plot 80/80A, Near RanaDevi Temple, Koperkhairen, Navi Mumbai 400709",
+    },
+    {
+      name: "Bangalore Office",
+      address: "Pashmina Waterfront, Battarahalli, Bangalore 560049",
+    },
+  ];
 
+  const [selectedOffice, setSelectedOffice] = useState(offices[0]); // Indore default
   return (
     <>
       <section className=" py-16 bg-gradient-to-t from-orange-100/30 to-white relative overflow-hidden">
@@ -366,10 +384,45 @@ export default function Contact() {
             </div>
 
             {/* RIGHT SIDE - MAP */}
-            <div className="rounded-2xl overflow-hidden shadow-xl border border-orange-100 h-full min-h-[500px]">
+            <div className="rounded-2xl overflow-hidden shadow-xl border border-orange-100 bg-white">
+              {/* Office Switcher */}
+              <div className="flex flex-wrap gap-3 p-5 border-b border-orange-100">
+                {offices.map((office) => (
+                  <button
+                    key={office.name}
+                    onClick={() => setSelectedOffice(office)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      selectedOffice.name === office.name
+                        ? "bg-[#f07020] text-white"
+                        : "bg-orange-50 text-gray-700 hover:bg-orange-100"
+                    }`}
+                  >
+                    {office.primary && "⭐ "}
+                    {office.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Selected Address */}
+              <div className="px-5 py-4 bg-orange-50 border-b border-orange-100">
+                <h3 className="font-semibold text-lg text-gray-900">
+                  {selectedOffice.name}
+                  {selectedOffice.primary && (
+                    <span className="ml-2 text-xs bg-[#f07020] text-white px-2 py-1 rounded-full">
+                      Head Office
+                    </span>
+                  )}
+                </h3>
+
+                <p className="text-gray-600 mt-2">{selectedOffice.address}</p>
+              </div>
+
+              {/* Map */}
               <iframe
-                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&q=${encodeURIComponent(settings.address)}`}
-                className="w-full h-full min-h-[500px]"
+                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&q=${encodeURIComponent(
+                  selectedOffice.address,
+                )}`}
+                className="w-full h-[567px]"
                 loading="lazy"
               />
             </div>

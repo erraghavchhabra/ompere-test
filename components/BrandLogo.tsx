@@ -88,7 +88,7 @@ export default function BrandLogo() {
                     <img
                       src={brand.image_url ?? brand.image}
                       alt={brand.name}
-                      className="max-h-10 md:max-h-12 w-auto object-contain grayscale opacity-70 transition-all duration-300 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
+                      className="max-h-10 md:max-h-15 w-auto object-contain grayscale opacity-70 transition-all duration-300 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                         (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");

@@ -167,26 +167,12 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-center gap-4">
           <p className="text-sm text-white/40 text-center md:text-left">
             © {new Date().getFullYear()} Ompere. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-6 text-sm text-white/40">
-            <Link
-              href="/privacy-policy"
-              className="hover:text-[#f07020] transition"
-            >
-              Privacy Policy
-            </Link>
-
-            <Link
-              href="/terms-and-conditions"
-              className="hover:text-[#f07020] transition"
-            >
-              Terms
-            </Link>
-          </div>
+          
         </div>
       </div>
 

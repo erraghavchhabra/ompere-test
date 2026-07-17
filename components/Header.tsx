@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, Menu, X } from "lucide-react";
-import { FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaYoutube, FaLinkedinIn } from "react-icons/fa";
 import { getSettings } from "@/lib/getSettings";
 
 
@@ -68,8 +68,8 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* 
-            {[FaFacebookF, FaInstagram, FaLinkedinIn].map((Icon, i) => (
+         
+            {[FaFacebookF, FaInstagram, FaYoutube,  FaLinkedinIn].map((Icon, i) => (
               <a
                 key={i}
                 href="#"
@@ -79,7 +79,7 @@ export default function Header() {
               </a>
             ))}
 
-            */}
+         
           </div>
         </div>
       </div>

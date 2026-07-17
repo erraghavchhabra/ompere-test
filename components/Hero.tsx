@@ -18,23 +18,39 @@ const heroSlides = [
   {
     image: "/assets/img/hero-banner1.png",
     badge: "India's Trusted Industrial Marketplace",
-    title: "Sell Your Used DG Sets & Industrial Machinery at the Best Market Price",
+    title:
+      "Sell Your Used DG Sets & Industrial Machinery at the Best Market Price",
     desc: "Get instant price estimates, verified offers, and GST-compliant payouts through India's most trusted machinery resale platform.",
-    points: ["Best Market Rates", "Zero Brokerage", "Scientific Inspection", "Fast Pickup & Payout"],
+    points: [
+      "Best Market Rates",
+      "Zero Brokerage",
+      "Scientific Inspection",
+      "Fast Pickup & Payout",
+    ],
   },
   {
     image: "/assets/img/hero-banner2.jpg",
     badge: "Verified Machinery Buyers Across India",
     title: "Upgrade or Sell Heavy Equipment Quickly With Transparent Valuation",
     desc: "Connect with serious industrial buyers, get accurate inspections, and secure the best possible resale value without delays.",
-    points: ["Verified Buyers", "Pan India Reach", "Quick Inspection", "Instant Offers"],
+    points: [
+      "Verified Buyers",
+      "Pan India Reach",
+      "Quick Inspection",
+      "Instant Offers",
+    ],
   },
   {
     image: "/assets/img/hero-banner3.png",
     badge: "Fast, Secure & Reliable",
     title: "Turn Idle Machinery Into Instant Capital With Hassle-Free Selling",
     desc: "From generators to industrial machines, unlock working capital with seamless pickup, secure payment, and end-to-end support.",
-    points: ["Secure Transactions", "Easy Documentation", "Quick Pickup", "Trusted Platform"],
+    points: [
+      "Secure Transactions",
+      "Easy Documentation",
+      "Quick Pickup",
+      "Trusted Platform",
+    ],
   },
 ];
 
@@ -45,45 +61,50 @@ interface PriceRow {
   capacity_kva: string;
 }
 
-interface Option { id: string; name: string }
+interface Option {
+  id: string;
+  name: string;
+}
 
 const years = Array.from(
   { length: new Date().getFullYear() - 1999 },
-  (_, i) => `${2000 + i}`
+  (_, i) => `${2000 + i}`,
 ).reverse();
 
 export default function Hero() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [yearOptions, setYearOptions] = useState<{ id: string; name: string }[]>([]);
-const [loadingYears, setLoadingYears] = useState(false);
+  const [yearOptions, setYearOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [loadingYears, setLoadingYears] = useState(false);
 
   // ── Raw data ─────────────────────────────────────────────────────────────
   const [allRows, setAllRows] = useState<PriceRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Derived dropdown options ──────────────────────────────────────────────
-  const [brands, setBrands]               = useState<Option[]>([]);
+  const [brands, setBrands] = useState<Option[]>([]);
   const [capacityOptions, setCapacityOptions] = useState<string[]>([]);
 
   // ── Selections ────────────────────────────────────────────────────────────
-  const [selectedBrand, setSelectedBrand]       = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedCapacity, setSelectedCapacity] = useState("");
-  const [selectedYear, setSelectedYear]         = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
 
   // ── Modal fields ──────────────────────────────────────────────────────────
-  const [name, setName]         = useState("");
-  const [phone, setPhone]       = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
-  const locationInputRef        = useRef<HTMLInputElement>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
 
   // ── Load Google Places script once ───────────────────────────────────────
   useEffect(() => {
     if (document.getElementById("google-places-script")) return;
     const script = document.createElement("script");
-    script.id  = "google-places-script";
+    script.id = "google-places-script";
     // Replace YOUR_API_KEY with your actual Google Maps API key
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
     script.async = true;
@@ -92,13 +113,13 @@ const [loadingYears, setLoadingYears] = useState(false);
   }, []);
 
   useEffect(() => {
-  setLoadingYears(true);
-  fetch(API.years)
-    .then((r) => r.json())
-    .then((data) => setYearOptions(data))
-    .catch(console.error)
-    .finally(() => setLoadingYears(false));
-}, []);
+    setLoadingYears(true);
+    fetch(API.years)
+      .then((r) => r.json())
+      .then((data) => setYearOptions(data))
+      .catch(console.error)
+      .finally(() => setLoadingYears(false));
+  }, []);
 
   // ── Init autocomplete when modal opens ────────────────────────────────────
   useEffect(() => {
@@ -114,19 +135,15 @@ const [loadingYears, setLoadingYears] = useState(false);
           types: ["(cities)"],
           componentRestrictions: { country: "in" }, // restrict to India
           fields: ["formatted_address", "name"],
-        }
+        },
       );
-autocompleteRef.current.addListener("place_changed", () => {
-  const place = autocompleteRef.current.getPlace();
+      autocompleteRef.current.addListener("place_changed", () => {
+        const place = autocompleteRef.current.getPlace();
 
-  console.log("PLACE SELECTED", place);
+        console.log("PLACE SELECTED", place);
 
-  setLocation(
-    place.formatted_address ||
-    place.name ||
-    ""
-  );
-});
+        setLocation(place.formatted_address || place.name || "");
+      });
     };
 
     // Google may already be loaded
@@ -134,7 +151,9 @@ autocompleteRef.current.addListener("place_changed", () => {
       initAutocomplete();
     } else {
       // Wait for script to finish loading
-      const script = document.getElementById("google-places-script") as HTMLScriptElement | null;
+      const script = document.getElementById(
+        "google-places-script",
+      ) as HTMLScriptElement | null;
       if (script) script.addEventListener("load", initAutocomplete);
     }
 
@@ -147,7 +166,7 @@ autocompleteRef.current.addListener("place_changed", () => {
     fetch(API.priceNewAll)
       .then((r) => r.json())
       .then((rows: PriceRow[]) => {
-        console.log("rows",rows);
+        console.log("rows", rows);
         setAllRows(rows);
 
         // Unique brands
@@ -193,43 +212,44 @@ autocompleteRef.current.addListener("place_changed", () => {
   const handleCalculateClick = () => setShowModal(true);
 
   const handleProceed = async () => {
-  if (!name.trim() || !phone.trim()) return;
-  setSubmitting(true);
-  try {
-    const fd = new FormData();
-    fd.append("name",            name);
-    fd.append("phone",           phone);
-    fd.append("location",        location);
-    fd.append("machine_type_id", "1");
-    fd.append("brand_id",        selectedBrand);
-    fd.append("capacity_kva",    selectedCapacity);
-    if (selectedYear) fd.append("make_year", selectedYear);
+    if (!name.trim() || !phone.trim()) return;
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("name", name);
+      fd.append("phone", phone);
+      fd.append("location", location);
+      fd.append("machine_type_id", "1");
+      fd.append("brand_id", selectedBrand);
+      fd.append("capacity_kva", selectedCapacity);
+      if (selectedYear) fd.append("make_year", selectedYear);
 
-    const res  = await fetch(API.valuationSubmit, { method: "POST", body: fd });
-    const data = await res.json();
+      const res = await fetch(API.valuationSubmit, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
 
-    if (data.status) {
-      const params = new URLSearchParams();
-      params.set("id",           String(data.id));          // ← carry the DB id
-      params.set("brand_id",     selectedBrand);
-      params.set("capacity_kva", selectedCapacity);
-      params.set("year",         selectedYear);
-      params.set("name",         name);
-      params.set("phone",        phone);
-      params.set("location",     location);
-      router.push(`/machinery-valuation?${params.toString()}`);
+      if (data.status) {
+        const params = new URLSearchParams();
+        params.set("id", String(data.id)); // ← carry the DB id
+        params.set("brand_id", selectedBrand);
+        params.set("capacity_kva", selectedCapacity);
+        params.set("year", selectedYear);
+        params.set("name", name);
+        params.set("phone", phone);
+        params.set("location", location);
+        router.push(`/machinery-valuation?${params.toString()}`);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   return (
-    
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-
       {/* BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <div className="hero-slider">
@@ -249,13 +269,11 @@ autocompleteRef.current.addListener("place_changed", () => {
 
       <div className="absolute inset-0 bg-black/60 z-[1]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-14  md:py-20 w-full">
         <div className="flex flex-col lg:flex-row gap-16 items-center">
-
           {/* CALCULATOR CARD */}
-          <div className="lg:w-[30%] w-full flex-shrink-0">
+          <div className="order-2 lg:order-1 lg:w-[40%] w-full flex-shrink-0">
             <div className="bg-white rounded-3xl shadow-2xl p-6 border border-white/20 backdrop-blur-sm">
-
               <h3 className="font-heading text-2xl font-bold text-[#1a1a1a] mb-2">
                 Price Calculator
               </h3>
@@ -264,19 +282,20 @@ autocompleteRef.current.addListener("place_changed", () => {
               </p>
 
               <div className="space-y-4">
-
                 {/* BRAND */}
                 <select
                   value={selectedBrand}
                   onChange={(e) => handleBrandChange(e.target.value)}
                   disabled={loading}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
                 >
                   <option value="">
                     {loading ? "Loading…" : "Select Brand"}
                   </option>
                   {brands.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </select>
 
@@ -285,36 +304,41 @@ autocompleteRef.current.addListener("place_changed", () => {
                   value={selectedCapacity}
                   onChange={(e) => setSelectedCapacity(e.target.value)}
                   disabled={!selectedBrand}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
                 >
                   <option value="">Select Capacity (KVA)</option>
                   {capacityOptions.map((kva) => (
-                    <option key={kva} value={kva}>{kva} KVA</option>
+                    <option key={kva} value={kva}>
+                      {kva} KVA
+                    </option>
                   ))}
                 </select>
-<select
-  value={selectedYear}
-  onChange={(e) => setSelectedYear(e.target.value)}
-  disabled={!selectedCapacity || loadingYears}
-  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
->
-  <option value="">
-    {loadingYears ? "Loading…" : "Select Year"}
-  </option>
-  {yearOptions.map((y) => (
-    <option key={y.id} value={y.name}>{y.name}</option>
-  ))}
-</select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  disabled={!selectedCapacity || loadingYears}
+                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                >
+                  <option value="">
+                    {loadingYears ? "Loading…" : "Select Year"}
+                  </option>
+                  {yearOptions.map((y) => (
+                    <option key={y.id} value={y.name}>
+                      {y.name}
+                    </option>
+                  ))}
+                </select>
 
                 {/* BUTTON */}
                 <button
                   onClick={handleCalculateClick}
-                  disabled={!selectedBrand || !selectedCapacity || !selectedYear}
-                  className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={
+                    !selectedBrand || !selectedCapacity || !selectedYear
+                  }
+                  className="w-full bg-[#f07020] lg:mt-4 text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Calculate Price
                 </button>
-
               </div>
 
               <Link
@@ -323,16 +347,14 @@ autocompleteRef.current.addListener("place_changed", () => {
               >
                 Learn How It Works →
               </Link>
-
             </div>
           </div>
 
           {/* HERO CONTENT */}
-          <div className="lg:w-[70%] w-full relative min-h-[420px]">
+          <div className="order-1 lg:order-2 lg:w-[60%] w-full relative min-h-[420px]">
             <div className="content-slider">
               {heroSlides.map((slide, index) => (
                 <div key={index} className="content-slide">
-
                   <span className="inline-block bg-[#f07020] text-white text-sm px-4 py-2 rounded-full mb-5">
                     {slide.badge}
                   </span>
@@ -368,12 +390,10 @@ autocompleteRef.current.addListener("place_changed", () => {
                       Learn More
                     </Link>
                   </div>
-
                 </div>
               ))}
             </div>
           </div>
-
         </div>
       </div>
 
@@ -381,7 +401,6 @@ autocompleteRef.current.addListener("place_changed", () => {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 relative shadow-2xl">
-
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-black text-xl"
@@ -428,37 +447,71 @@ autocompleteRef.current.addListener("place_changed", () => {
                   autoComplete="off"
                 />
               </div>
-             <button
-  onClick={handleProceed}
-  disabled={submitting || !name.trim() || phone.length < 10}
-  className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
->
-  {submitting ? "Saving..." : "Proceed"}
-</button>
+              <button
+                onClick={handleProceed}
+                disabled={submitting || !name.trim() || phone.length < 10}
+                className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submitting ? "Saving..." : "Proceed"}
+              </button>
             </div>
-
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .hero-slider, .content-slider { position: relative; width: 100%; height: 100%; }
-        .slide, .content-slide { position: absolute; inset: 0; opacity: 0; animation: fadeSlider 12s infinite; }
-        .slide:nth-child(1), .content-slide:nth-child(1) { animation-delay: 0s; }
-        .slide:nth-child(2), .content-slide:nth-child(2) { animation-delay: 4s; }
-        .slide:nth-child(3), .content-slide:nth-child(3) { animation-delay: 8s; }
+        .hero-slider,
+        .content-slider {
+          position: relative;
+          width: 100%;
+          height: 100%;
+        }
+        .slide,
+        .content-slide {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          animation: fadeSlider 12s infinite;
+        }
+        .slide:nth-child(1),
+        .content-slide:nth-child(1) {
+          animation-delay: 0s;
+        }
+        .slide:nth-child(2),
+        .content-slide:nth-child(2) {
+          animation-delay: 4s;
+        }
+        .slide:nth-child(3),
+        .content-slide:nth-child(3) {
+          animation-delay: 8s;
+        }
         @keyframes fadeSlider {
-          0%   { opacity: 0; transform: translateY(20px); }
-          8%   { opacity: 1; transform: translateY(0); }
-          30%  { opacity: 1; transform: translateY(0); }
-          38%  { opacity: 0; transform: translateY(-20px); }
-          100% { opacity: 0; transform: translateY(-20px); }
+          0% {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          8% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          30% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          38% {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
         }
         /* Google Places dropdown styling */
         .pac-container {
           border-radius: 12px;
           border: 1px solid #e5e7eb;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
           font-family: inherit;
           font-size: 14px;
           margin-top: 4px;
@@ -469,12 +522,20 @@ autocompleteRef.current.addListener("place_changed", () => {
           cursor: pointer;
           border-top: 1px solid #f3f4f6;
         }
-        .pac-item:hover, .pac-item-selected {
+        .pac-item:hover,
+        .pac-item-selected {
           background: #fff5ef;
         }
-        .pac-item-query { color: #1a1a1a; font-weight: 500; }
-        .pac-matched { color: #f07020; }
-        .pac-icon { display: none; }
+        .pac-item-query {
+          color: #1a1a1a;
+          font-weight: 500;
+        }
+        .pac-matched {
+          color: #f07020;
+        }
+        .pac-icon {
+          display: none;
+        }
       `}</style>
     </section>
   );
