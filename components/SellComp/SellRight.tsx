@@ -7,6 +7,7 @@ import {
   X,
   FileText,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { API } from "@/lib/api";
 
@@ -15,6 +16,9 @@ interface FormData {
   email: string;
   phone_number: string;
   company_name: string;
+  state: string;
+  city: string;
+  address: string;
   brand: string;
   capacity_range: string;
   manufacturing_year: string;
@@ -40,6 +44,9 @@ const INITIAL_FORM: FormData = {
   email: "",
   phone_number: "",
   company_name: "",
+  state: "",
+  city: "",
+  address: "",
   brand: "",
   capacity_range: "",
   manufacturing_year: "",
@@ -52,6 +59,57 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 6;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 const ALLOWED_EXTENSIONS = ".jpg,.jpeg,.png,.pdf";
+
+// ─── States we currently operate in ───────────────────────────────────────
+const OPERATING_STATES = [
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Rajasthan",
+  "Karnataka",
+];
+
+// ─── Full list of Indian states & UTs shown in the dropdown ──────────────
+const INDIAN_STATES: SelectOption[] = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+].map((name) => ({ id: name, name }));
+
+const isStateSupported = (state: string) =>
+  !state || OPERATING_STATES.includes(state);
 
 const validate = (formData: FormData): FormErrors => {
   const errors: FormErrors = {};
@@ -73,6 +131,17 @@ const validate = (formData: FormData): FormErrors => {
   } else if (!/^\+?[0-9\s\-().]{7,15}$/.test(formData.phone_number.trim())) {
     errors.phone_number = "Enter a valid phone number.";
   }
+
+  if (!formData.state) {
+    errors.state = "Please select a state.";
+  } else if (!isStateSupported(formData.state)) {
+    errors.state = `We are currently not operating in your ${formData.state} state. We expect to launch services in your state soon`;
+  }
+
+  if (!formData.city.trim()) {
+    errors.city = "City is required.";
+  }
+  // address is optional — no validation
 
   if (!formData.brand) errors.brand = "Please select a brand.";
   if (!formData.capacity_range)
@@ -211,7 +280,7 @@ export default function SellRight() {
     useSelectOptions(API.engineConditions);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     const updated = { ...formData, [e.target.name]: e.target.value };
     setFormData(updated);
@@ -227,7 +296,7 @@ export default function SellRight() {
   };
 
   const handleBlur = (
-    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
     const name = e.target.name as keyof FormData;
     setTouched((prev) => ({ ...prev, [name]: true }));
@@ -337,6 +406,9 @@ export default function SellRight() {
         : "border-gray-200 focus:ring-[#f07020]"
     }`;
 
+  const stateUnsupported =
+    !!formData.state && !isStateSupported(formData.state);
+
   return (
     <>
       <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10">
@@ -419,6 +491,70 @@ export default function SellRight() {
                 className={inputClass("company_name")}
               />
             </div>
+
+            {/* State */}
+            <div>
+              <SelectField
+                label="State"
+                name="state"
+                value={formData.state}
+                placeholder="Select state"
+                options={INDIAN_STATES}
+                error={
+                  errors.state && !stateUnsupported ? errors.state : undefined
+                }
+                onChange={handleChange}
+                onBlur={handleBlur}
+              />
+              {stateUnsupported && (
+                <div className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-amber-700">
+                    We are currently not operating in your{" "}
+                    <span className="font-semibold">{formData.state}</span>{" "}
+                    state. We expect to launch services in your state soon.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* City */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                City *
+              </label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Indore"
+                className={inputClass("city")}
+              />
+              {errors.city && (
+                <p className="mt-1 text-sm text-red-500">{errors.city}</p>
+              )}
+            </div>
+
+            {/* Address (optional) */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Address
+                <span className="ml-2 text-sm font-normal text-gray-400">
+                  (Optional)
+                </span>
+              </label>
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Plot no., street, landmark…"
+                rows={3}
+                className={`w-full px-5 py-4 rounded-2xl border text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 resize-none border-gray-200 focus:ring-[#f07020]`}
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-2">
                 Preferred Time for Inspection *
