@@ -292,6 +292,19 @@ function SellRightForm() {
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formContainerRef = useRef<HTMLDivElement>(null);
+
+  // ── Scroll to the form when arriving with prefill query params ────────────
+  useEffect(() => {
+    if (hasPrefillParams && formContainerRef.current) {
+      formContainerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+    // Only run once on mount — hasPrefillParams won't change after that
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Dynamic options from API
   const { options: brandOptions, loading: brandsLoading } = useSelectOptions(
@@ -479,7 +492,10 @@ function SellRightForm() {
 
   return (
     <>
-      <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10">
+      <div
+        ref={formContainerRef}
+        className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10 scroll-mt-24"
+      >
         <h2 className="text-4xl font-bold text-[#1a1a1a] mb-10">
           Genset Information Form
         </h2>
