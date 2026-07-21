@@ -363,15 +363,23 @@ function SellRightForm() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) => {
-    const updated = { ...formData, [e.target.name]: e.target.value };
+    const { name, value } = e.target;
+    const updated = { ...formData, [name]: value };
     setFormData(updated);
 
-    if (touched[e.target.name as keyof FormData]) {
+    // Changing state again shouldn't keep showing a stale "City is
+    // required" message from an earlier blur — clear city's touched/error
+    // state so it only reappears once the user actually revisits city.
+    if (name === "state") {
+      setTouched((prev) => ({ ...prev, city: false }));
+      setErrors((prev) => ({ ...prev, city: undefined }));
+    }
+
+    if (touched[name as keyof FormData]) {
       const fieldErrors = validate(updated);
       setErrors((prev) => ({
         ...prev,
-        [e.target.name]:
-          fieldErrors[e.target.name as keyof FormData] || undefined,
+        [name]: fieldErrors[name as keyof FormData] || undefined,
       }));
     }
   };
