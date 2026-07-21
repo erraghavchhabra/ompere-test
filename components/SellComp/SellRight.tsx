@@ -21,7 +21,9 @@ interface FormData {
   city: string;
   address: string;
   brand: string;
+  brand_other: string;
   capacity_range: string;
+  capacity_range_other: string;
   manufacturing_year: string;
   running_hours: string;
   condition: string;
@@ -49,12 +51,17 @@ const INITIAL_FORM: FormData = {
   city: "",
   address: "",
   brand: "",
+  brand_other: "",
   capacity_range: "",
+  capacity_range_other: "",
   manufacturing_year: "",
   running_hours: "",
   condition: "",
   preferred_inspection_time: "",
 };
+
+const OTHER_VALUE = "Other";
+const OTHER_OPTION: SelectOption = { id: "Other", name: OTHER_VALUE };
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 6;
@@ -144,9 +151,20 @@ const validate = (formData: FormData): FormErrors => {
   }
   // address is optional — no validation
 
-  if (!formData.brand) errors.brand = "Please select a brand.";
-  if (!formData.capacity_range)
+  if (!formData.brand) {
+    errors.brand = "Please select a brand.";
+  } else if (formData.brand === OTHER_VALUE && !formData.brand_other.trim()) {
+    errors.brand = "Please enter the brand name.";
+  }
+
+  if (!formData.capacity_range) {
     errors.capacity_range = "Please select a capacity range.";
+  } else if (
+    formData.capacity_range === OTHER_VALUE &&
+    !formData.capacity_range_other.trim()
+  ) {
+    errors.capacity_range = "Please enter the capacity range.";
+  }
   if (!formData.manufacturing_year)
     errors.manufacturing_year = "Please select a manufacturing year.";
   if (!formData.running_hours)
@@ -373,6 +391,17 @@ function SellRightForm() {
     if (name === "state") {
       setTouched((prev) => ({ ...prev, city: false }));
       setErrors((prev) => ({ ...prev, city: undefined }));
+    }
+
+    // Clear the free-text value if the user picks a normal option again
+    // after having selected "Other"
+    if (name === "brand" && value !== OTHER_VALUE) {
+      updated.brand_other = "";
+      setFormData(updated);
+    }
+    if (name === "capacity_range" && value !== OTHER_VALUE) {
+      updated.capacity_range_other = "";
+      setFormData(updated);
     }
 
     if (touched[name as keyof FormData]) {
@@ -706,29 +735,61 @@ function SellRightForm() {
           </h3>
           <div className="grid md:grid-cols-2 gap-6">
             {/* Brand — sends name */}
-            <SelectField
-              label="Brand"
-              name="brand"
-              value={formData.brand}
-              options={brandOptions}
-              loading={brandsLoading}
-              error={errors.brand}
-              onChange={handleChange}
-              onBlur={handleBlur}
-            />
+            <div>
+              <SelectField
+                label="Brand"
+                name="brand"
+                value={formData.brand}
+                options={
+                  brandsLoading ? brandOptions : [...brandOptions, OTHER_OPTION]
+                }
+                loading={brandsLoading}
+                error={errors.brand}
+                onChange={handleChange}
+                onBlur={handleBlur}
+              />
+              {formData.brand === OTHER_VALUE && (
+                <input
+                  type="text"
+                  name="brand_other"
+                  value={formData.brand_other}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter brand name"
+                  className={`${inputClass("brand_other")} mt-3`}
+                />
+              )}
+            </div>
 
             {/* Capacity Range — sends name */}
-            <SelectField
-              label="Capacity Range"
-              name="capacity_range"
-              value={formData.capacity_range}
-              placeholder="Select capacity"
-              options={capacityOptions}
-              loading={capacitiesLoading}
-              error={errors.capacity_range}
-              onChange={handleChange}
-              onBlur={handleBlur}
-            />
+            <div>
+              <SelectField
+                label="Capacity Range"
+                name="capacity_range"
+                value={formData.capacity_range}
+                placeholder="Select capacity"
+                options={
+                  capacitiesLoading
+                    ? capacityOptions
+                    : [...capacityOptions, OTHER_OPTION]
+                }
+                loading={capacitiesLoading}
+                error={errors.capacity_range}
+                onChange={handleChange}
+                onBlur={handleBlur}
+              />
+              {formData.capacity_range === OTHER_VALUE && (
+                <input
+                  type="text"
+                  name="capacity_range_other"
+                  value={formData.capacity_range_other}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Enter capacity range (e.g. 50-60 kVA)"
+                  className={`${inputClass("capacity_range_other")} mt-3`}
+                />
+              )}
+            </div>
 
             {/* Manufacturing Year — sends make_year (name), not age_years (id) */}
             <SelectField
