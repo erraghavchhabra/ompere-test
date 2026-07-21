@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
@@ -250,8 +250,30 @@ function SelectField({
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-export default function SellRight() {
+// ─── Loading fallback shown while the Suspense boundary resolves ─────────────
+function SellRightFallback() {
+  return (
+    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-8 md:p-10">
+      <h2 className="text-4xl font-bold text-[#1a1a1a] mb-10">
+        Genset Information Form
+      </h2>
+      <div className="animate-pulse space-y-6">
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+          <div className="h-14 bg-gray-100 rounded-2xl" />
+        </div>
+        <div className="h-14 bg-gray-100 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Inner component: everything that actually uses useSearchParams() ────────
+function SellRightForm() {
   const searchParams = useSearchParams();
   const qpBrandId = searchParams.get("brand_id");
   const qpCapacityKva = searchParams.get("capacity_kva");
@@ -898,5 +920,17 @@ export default function SellRight() {
         </div>
       )}
     </>
+  );
+}
+
+// ─── Default export: wraps the form in a Suspense boundary ───────────────────
+// Required because useSearchParams() opts this tree into client-side rendering;
+// Next.js needs a Suspense boundary around it to avoid bailing out the whole
+// route from static rendering.
+export default function SellRight() {
+  return (
+    <Suspense fallback={<SellRightFallback />}>
+      <SellRightForm />
+    </Suspense>
   );
 }
