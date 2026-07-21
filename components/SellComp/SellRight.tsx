@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   UploadCloud,
@@ -251,6 +252,12 @@ function SelectField({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function SellRight() {
+  const searchParams = useSearchParams();
+  const qpBrandId = searchParams.get("brand_id");
+  const qpCapacityKva = searchParams.get("capacity_kva");
+  const qpYear = searchParams.get("year");
+  const hasPrefillParams = !!(qpBrandId || qpCapacityKva || qpYear);
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -278,6 +285,45 @@ export default function SellRight() {
   );
   const { options: engineConditionOptions, loading: engineConditionsLoading } =
     useSelectOptions(API.engineConditions);
+
+  // ── Prefill from query params (coming from the Hero price-calculator) ─────
+  useEffect(() => {
+    if (!qpBrandId || brandsLoading || brandOptions.length === 0) return;
+    const match = brandOptions.find((b) => String(b.id) === String(qpBrandId));
+    if (match) {
+      setFormData((prev) =>
+        prev.brand ? prev : { ...prev, brand: match.name },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qpBrandId, brandOptions, brandsLoading]);
+
+  useEffect(() => {
+    if (!qpCapacityKva || capacitiesLoading || capacityOptions.length === 0)
+      return;
+    const match = capacityOptions.find(
+      (c) => String(c.name) === String(qpCapacityKva),
+    );
+    if (match) {
+      setFormData((prev) =>
+        prev.capacity_range ? prev : { ...prev, capacity_range: match.name },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qpCapacityKva, capacityOptions, capacitiesLoading]);
+
+  useEffect(() => {
+    if (!qpYear || yearsLoading || yearOptions.length === 0) return;
+    const match = yearOptions.find((y) => String(y.name) === String(qpYear));
+    if (match) {
+      setFormData((prev) =>
+        prev.manufacturing_year
+          ? prev
+          : { ...prev, manufacturing_year: match.name },
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qpYear, yearOptions, yearsLoading]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -415,6 +461,16 @@ export default function SellRight() {
         <h2 className="text-4xl font-bold text-[#1a1a1a] mb-10">
           Genset Information Form
         </h2>
+
+        {hasPrefillParams && (
+          <div className="mb-8 flex items-start gap-2 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
+            <CheckCircle2 className="w-4 h-4 text-[#f07020] mt-0.5 shrink-0" />
+            <p className="text-sm text-[#f07020]">
+              We've pre-filled your brand, capacity, and year from your
+              earlier selection — just confirm the rest.
+            </p>
+          </div>
+        )}
 
         {/* ─── Your Information ─── */}
         <div className="mb-10">

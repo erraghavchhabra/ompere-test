@@ -209,7 +209,30 @@ export default function Hero() {
     setCapacityOptions(unique);
   };
 
-  const handleCalculateClick = () => setShowModal(true);
+ const handleCalculateClick = async () => {
+  try {
+    const params = new URLSearchParams({
+      brand_id: selectedBrand,
+      capacity_kva: selectedCapacity,
+      year: selectedYear,
+    });
+    const res = await fetch(`${API.checkAvailability}?${params.toString()}`);
+    const data = await res.json();
+
+    if (data.status && data.exists) {
+      setShowModal(true);
+    } else {
+      const sellParams = new URLSearchParams();
+      sellParams.set("brand_id", selectedBrand);
+      sellParams.set("capacity_kva", selectedCapacity);
+      sellParams.set("year", selectedYear);
+      router.push(`/sell?${sellParams.toString()}`);
+    }
+  } catch (err) {
+    console.error(err);
+    // fail-safe: still let them try the modal, or route to /sell — your call
+  }
+};
 
   const handleProceed = async () => {
     if (!name.trim() || !phone.trim()) return;
