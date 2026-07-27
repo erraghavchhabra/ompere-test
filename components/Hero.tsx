@@ -66,6 +66,10 @@ interface Option {
   name: string;
 }
 
+// Sentinel value used for the "not listed" option in both dropdowns
+const OTHERS_VALUE = "others";
+const OTHERS_LABEL = "Others / Not Listed Above";
+
 const years = Array.from(
   { length: new Date().getFullYear() - 1999 },
   (_, i) => `${2000 + i}`,
@@ -74,10 +78,9 @@ const years = Array.from(
 export default function Hero() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [yearOptions, setYearOptions] = useState<
-    { id: string; name: string }[]
-  >([]);
+ const [yearOptions, setYearOptions] = useState<{ id: string; name: string }[]>([]);
   const [loadingYears, setLoadingYears] = useState(false);
 
   // ── Raw data ─────────────────────────────────────────────────────────────
@@ -105,7 +108,6 @@ export default function Hero() {
     if (document.getElementById("google-places-script")) return;
     const script = document.createElement("script");
     script.id = "google-places-script";
-    // Replace YOUR_API_KEY with your actual Google Maps API key
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
     script.async = true;
     script.defer = true;
@@ -127,46 +129,39 @@ export default function Hero() {
 
     const initAutocomplete = () => {
       if (!locationInputRef.current || !window.google?.maps?.places) return;
-      if (autocompleteRef.current) return; // already initialised
+      if (autocompleteRef.current) return;
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         locationInputRef.current,
         {
           types: ["(cities)"],
-          componentRestrictions: { country: "in" }, // restrict to India
+          componentRestrictions: { country: "in" },
           fields: ["formatted_address", "name"],
         },
       );
       autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current.getPlace();
-
-        console.log("PLACE SELECTED", place);
-
         setLocation(place.formatted_address || place.name || "");
       });
     };
 
-    // Google may already be loaded
     if (window.google?.maps?.places) {
       initAutocomplete();
     } else {
-      // Wait for script to finish loading
       const script = document.getElementById(
         "google-places-script",
       ) as HTMLScriptElement | null;
       if (script) script.addEventListener("load", initAutocomplete);
     }
 
-    return () => {
-      // Clean up listener on unmount / close — autocomplete stays attached to input
-    };
+    return () => {};
   }, [showModal]);
+
   useEffect(() => {
     setLoading(true);
     fetch(API.priceNewAll)
       .then((r) => r.json())
       .then((rows: PriceRow[]) => {
-        console.log("rows", rows);
         setAllRows(rows);
 
         // Unique brands
@@ -179,6 +174,8 @@ export default function Hero() {
             uniqueBrands.push({ id: key, name: row.brand_name });
           }
         }
+        // Append "Others / Not Listed Above" at the end of the brand list
+        uniqueBrands.push({ id: OTHERS_VALUE, name: OTHERS_LABEL });
         setBrands(uniqueBrands);
       })
       .catch(console.error)
@@ -195,6 +192,25 @@ export default function Hero() {
       return;
     }
 
+    if (brandId === OTHERS_VALUE) {
+      // Brand isn't listed, but capacity is independent — show every
+      // known capacity value across all brands, plus "Others", and let
+      // the user actually pick instead of auto-locking to "others".
+      const seenAll = new Set<string>();
+      const allCapacities: string[] = [];
+      for (const row of allRows) {
+        const key = String(row.capacity_kva);
+        if (!seenAll.has(key)) {
+          seenAll.add(key);
+          allCapacities.push(key);
+        }
+      }
+      allCapacities.sort((a, b) => Number(a) - Number(b));
+      allCapacities.push(OTHERS_VALUE);
+      setCapacityOptions(allCapacities);
+      return;
+    }
+
     const filtered = allRows.filter((r) => String(r.brand_id) === brandId);
     const seen = new Set<string>();
     const unique: string[] = [];
@@ -206,33 +222,58 @@ export default function Hero() {
       }
     }
     unique.sort((a, b) => Number(a) - Number(b));
+    unique.push(OTHERS_VALUE);
     setCapacityOptions(unique);
   };
 
- const handleCalculateClick = async () => {
-  try {
-    const params = new URLSearchParams({
-      brand_id: selectedBrand,
-      capacity_kva: selectedCapacity,
-      year: selectedYear,
-    });
-    const res = await fetch(`${API.checkAvailability}?${params.toString()}`);
-    const data = await res.json();
+  const handleCapacityChange = (value: string) => {
+    setSelectedCapacity(value);
+  };
 
-    if (data.status && data.exists) {
-      setShowModal(true);
-    } else {
-      const sellParams = new URLSearchParams();
+  const goToFormWithUnavailableContext = () => {
+    const sellParams = new URLSearchParams();
+    if (selectedBrand && selectedBrand !== OTHERS_VALUE)
       sellParams.set("brand_id", selectedBrand);
+    if (selectedCapacity && selectedCapacity !== OTHERS_VALUE)
       sellParams.set("capacity_kva", selectedCapacity);
-      sellParams.set("year", selectedYear);
-      router.push(`/sell?${sellParams.toString()}`);
+    if (selectedYear) sellParams.set("year", selectedYear);
+    setShowUnavailableModal(false);
+    router.push(`/sell?${sellParams.toString()}`);
+  };
+
+  const handleCalculateClick = async () => {
+    // Brand or capacity not listed → we already know there's no maintained
+    // price. Skip the API call and go straight to the polite explanation.
+    if (selectedBrand === OTHERS_VALUE || selectedCapacity === OTHERS_VALUE) {
+      setShowUnavailableModal(true);
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    // fail-safe: still let them try the modal, or route to /sell — your call
-  }
-};
+
+    try {
+      const params = new URLSearchParams({
+        brand_id: selectedBrand,
+        capacity_kva: selectedCapacity,
+        year: selectedYear,
+      });
+      const res = await fetch(`${API.checkAvailability}?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.status && data.exists) {
+        // Price IS maintained → collect lead details, then proceed to the
+        // price/valuation flow (handleProceed → /machinery-valuation).
+        setShowModal(true);
+      } else {
+        // Price not maintained for this exact combo → explain why before
+        // sending them to the form, instead of a silent redirect.
+        setShowUnavailableModal(true);
+      }
+    } catch (err) {
+      console.error(err);
+      // Network/API failure: still guide the user forward with context
+      // rather than leaving the button appearing to do nothing.
+      setShowUnavailableModal(true);
+    }
+  };
 
   const handleProceed = async () => {
     if (!name.trim() || !phone.trim()) return;
@@ -255,7 +296,7 @@ export default function Hero() {
 
       if (data.status) {
         const params = new URLSearchParams();
-        params.set("id", String(data.id)); // ← carry the DB id
+        params.set("id", String(data.id));
         params.set("brand_id", selectedBrand);
         params.set("capacity_kva", selectedCapacity);
         params.set("year", selectedYear);
@@ -310,7 +351,7 @@ export default function Hero() {
                   value={selectedBrand}
                   onChange={(e) => handleBrandChange(e.target.value)}
                   disabled={loading}
-                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
                 >
                   <option value="">
                     {loading ? "Loading…" : "Select Brand"}
@@ -323,16 +364,16 @@ export default function Hero() {
                 </select>
 
                 {/* CAPACITY */}
-                <select
-                  value={selectedCapacity}
-                  onChange={(e) => setSelectedCapacity(e.target.value)}
-                  disabled={!selectedBrand}
-                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
-                >
+              <select
+  value={selectedCapacity}
+  onChange={(e) => handleCapacityChange(e.target.value)}
+  disabled={!selectedBrand}
+  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
+>
                   <option value="">Select Capacity (KVA)</option>
                   {capacityOptions.map((kva) => (
                     <option key={kva} value={kva}>
-                      {kva} KVA
+                      {kva === OTHERS_VALUE ? OTHERS_LABEL : `${kva} KVA`}
                     </option>
                   ))}
                 </select>
@@ -340,7 +381,7 @@ export default function Hero() {
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
                   disabled={!selectedCapacity || loadingYears}
-                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
                 >
                   <option value="">
                     {loadingYears ? "Loading…" : "Select Year"}
@@ -420,7 +461,7 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* LEAD MODAL — price is maintained, collect details before valuation */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 relative shadow-2xl">
@@ -482,6 +523,41 @@ export default function Hero() {
         </div>
       )}
 
+      {/* UNAVAILABLE-PRICE MODAL — no maintained price for this combo */}
+      {showUnavailableModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
+          <div className="bg-white w-full max-w-md rounded-3xl p-8 relative shadow-2xl text-center">
+            <button
+              onClick={() => setShowUnavailableModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-black text-xl"
+            >
+              ×
+            </button>
+
+            <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-[#f07020] text-2xl font-bold">
+              !
+            </div>
+
+            <h3 className="text-xl font-bold text-[#1a1a1a] mb-3">
+              Instant Price Not Available
+            </h3>
+            <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+              Sorry, for this unlisted category the instant quote price
+              isn't maintained by our administrator — but that doesn't mean
+              you can't sell it to us! Kindly fill in the form so that we
+              can provide you an on-spot valuation.
+            </p>
+
+            <button
+              onClick={goToFormWithUnavailableContext}
+              className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition"
+            >
+              Fill the Form
+            </button>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .hero-slider,
         .content-slider {
@@ -530,7 +606,6 @@ export default function Hero() {
             transform: translateY(-20px);
           }
         }
-        /* Google Places dropdown styling */
         .pac-container {
           border-radius: 12px;
           border: 1px solid #e5e7eb;

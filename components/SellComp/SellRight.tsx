@@ -63,6 +63,19 @@ const INITIAL_FORM: FormData = {
 const OTHER_VALUE = "Other";
 const OTHER_OPTION: SelectOption = { id: "Other", name: OTHER_VALUE };
 
+// Matches any "other"-style entry the backend might already send
+// (Other, Others, Not Listed, etc.) so we never render it twice —
+// once from the API response and once from our static OTHER_OPTION.
+const isOtherLikeLabel = (name: string) =>
+  /^other|not\s*listed/i.test(name.trim());
+
+const withOtherOption = (options: SelectOption[]): SelectOption[] => {
+  const withoutExistingOther = options.filter(
+    (opt) => !isOtherLikeLabel(opt.name),
+  );
+  return [...withoutExistingOther, OTHER_OPTION];
+};
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 6;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "application/pdf"];
@@ -301,9 +314,7 @@ function SellRightForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<
-    Partial<Record<keyof FormData, boolean>>
-  >({});
+const [touched, setTouched] = useState<Partial<Record<keyof FormData, boolean>>>({});
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -741,7 +752,7 @@ function SellRightForm() {
                 name="brand"
                 value={formData.brand}
                 options={
-                  brandsLoading ? brandOptions : [...brandOptions, OTHER_OPTION]
+                  brandsLoading ? brandOptions : withOtherOption(brandOptions)
                 }
                 loading={brandsLoading}
                 error={errors.brand}
@@ -771,7 +782,7 @@ function SellRightForm() {
                 options={
                   capacitiesLoading
                     ? capacityOptions
-                    : [...capacityOptions, OTHER_OPTION]
+                    : withOtherOption(capacityOptions)
                 }
                 loading={capacitiesLoading}
                 error={errors.capacity_range}

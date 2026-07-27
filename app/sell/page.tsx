@@ -156,16 +156,18 @@ export default function SellPage() {
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-orange-200/20 rounded-full blur-3xl pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="grid lg:grid-cols-[380px_1fr] gap-8">
-            {/* LEFT SIDE */}
-            <div className="lg:sticky lg:top-24">
-              <SellLeft settings={settings} />
-            </div>
+  <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+    {/* LEFT SIDE */}
+    <div className="order-2 lg:order-1 lg:sticky lg:top-24">
+      <SellLeft settings={settings} />
+    </div>
 
-            {/* RIGHT SIDE */}
-            <SellRight />
-          </div>
-        </div>
+    {/* RIGHT SIDE */}
+    <div className="order-1 lg:order-2">
+      <SellRight />
+    </div>
+  </div>
+</div>
       </section>
     </>
   );
