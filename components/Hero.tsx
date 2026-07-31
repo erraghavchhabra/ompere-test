@@ -9,7 +9,7 @@ import { API } from "@/lib/api";
 // ── Google Places types ───────────────────────────────────────────────────────
 declare global {
   interface Window {
-    google: any;
+    google: typeof google;
     initGooglePlaces?: () => void;
   }
 }
@@ -18,39 +18,23 @@ const heroSlides = [
   {
     image: "/assets/img/hero-banner1.png",
     badge: "India's Trusted Industrial Marketplace",
-    title:
-      "Sell Your Used DG Sets & Industrial Machinery at the Best Market Price",
+    title: "Sell Your Used DG Sets & Industrial Machinery at the Best Market Price",
     desc: "Get instant price estimates, verified offers, and GST-compliant payouts through India's most trusted machinery resale platform.",
-    points: [
-      "Best Market Rates",
-      "Zero Brokerage",
-      "Scientific Inspection",
-      "Fast Pickup & Payout",
-    ],
+    points: ["Best Market Rates", "Zero Brokerage", "Scientific Inspection", "Fast Pickup & Payout"],
   },
   {
     image: "/assets/img/hero-banner2.jpg",
     badge: "Verified Machinery Buyers Across India",
     title: "Upgrade or Sell Heavy Equipment Quickly With Transparent Valuation",
     desc: "Connect with serious industrial buyers, get accurate inspections, and secure the best possible resale value without delays.",
-    points: [
-      "Verified Buyers",
-      "Pan India Reach",
-      "Quick Inspection",
-      "Instant Offers",
-    ],
+    points: ["Verified Buyers", "Pan India Reach", "Quick Inspection", "Instant Offers"],
   },
   {
     image: "/assets/img/hero-banner3.png",
     badge: "Fast, Secure & Reliable",
     title: "Turn Idle Machinery Into Instant Capital With Hassle-Free Selling",
     desc: "From generators to industrial machines, unlock working capital with seamless pickup, secure payment, and end-to-end support.",
-    points: [
-      "Secure Transactions",
-      "Easy Documentation",
-      "Quick Pickup",
-      "Trusted Platform",
-    ],
+    points: ["Secure Transactions", "Easy Documentation", "Quick Pickup", "Trusted Platform"],
   },
 ];
 
@@ -61,66 +45,47 @@ interface PriceRow {
   capacity_kva: string;
 }
 
-interface Option {
-  id: string;
-  name: string;
-}
-
-// Sentinel value used for the "not listed" option in both dropdowns
-const OTHERS_VALUE = "others";
-const OTHERS_LABEL = "Others / Not Listed Above";
+interface Option { id: string; name: string }
 
 const years = Array.from(
   { length: new Date().getFullYear() - 1999 },
-  (_, i) => `${2000 + i}`,
+  (_, i) => `${2000 + i}`
 ).reverse();
 
 export default function Hero() {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
-  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
- const [yearOptions, setYearOptions] = useState<{ id: string; name: string }[]>([]);
-  const [loadingYears, setLoadingYears] = useState(false);
 
   // ── Raw data ─────────────────────────────────────────────────────────────
   const [allRows, setAllRows] = useState<PriceRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Derived dropdown options ──────────────────────────────────────────────
-  const [brands, setBrands] = useState<Option[]>([]);
+  const [brands, setBrands]               = useState<Option[]>([]);
   const [capacityOptions, setCapacityOptions] = useState<string[]>([]);
 
   // ── Selections ────────────────────────────────────────────────────────────
-  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedBrand, setSelectedBrand]       = useState("");
   const [selectedCapacity, setSelectedCapacity] = useState("");
-  const [selectedYear, setSelectedYear] = useState("");
+  const [selectedYear, setSelectedYear]         = useState("");
 
   // ── Modal fields ──────────────────────────────────────────────────────────
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName]         = useState("");
+  const [phone, setPhone]       = useState("");
   const [location, setLocation] = useState("");
-  const locationInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
+  const locationInputRef        = useRef<HTMLInputElement>(null);
+  const autocompleteRef         = useRef<google.maps.places.Autocomplete | null>(null);
 
   // ── Load Google Places script once ───────────────────────────────────────
   useEffect(() => {
     if (document.getElementById("google-places-script")) return;
     const script = document.createElement("script");
-    script.id = "google-places-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`;
+    script.id  = "google-places-script";
+    // Replace YOUR_API_KEY with your actual Google Maps API key
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBXSowlX1oH3LU_LthrkKFG791QjmjzEFo&libraries=places`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
-    setLoadingYears(true);
-    fetch(API.years)
-      .then((r) => r.json())
-      .then((data) => setYearOptions(data))
-      .catch(console.error)
-      .finally(() => setLoadingYears(false));
   }, []);
 
   // ── Init autocomplete when modal opens ────────────────────────────────────
@@ -129,34 +94,36 @@ export default function Hero() {
 
     const initAutocomplete = () => {
       if (!locationInputRef.current || !window.google?.maps?.places) return;
-      if (autocompleteRef.current) return;
+      if (autocompleteRef.current) return; // already initialised
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         locationInputRef.current,
         {
           types: ["(cities)"],
-          componentRestrictions: { country: "in" },
+          componentRestrictions: { country: "in" }, // restrict to India
           fields: ["formatted_address", "name"],
-        },
+        }
       );
+
       autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current.getPlace();
-        setLocation(place.formatted_address || place.name || "");
+        const place = autocompleteRef.current!.getPlace();
+        setLocation(place.formatted_address ?? place.name ?? "");
       });
     };
 
+    // Google may already be loaded
     if (window.google?.maps?.places) {
       initAutocomplete();
     } else {
-      const script = document.getElementById(
-        "google-places-script",
-      ) as HTMLScriptElement | null;
+      // Wait for script to finish loading
+      const script = document.getElementById("google-places-script") as HTMLScriptElement | null;
       if (script) script.addEventListener("load", initAutocomplete);
     }
 
-    return () => {};
+    return () => {
+      // Clean up listener on unmount / close — autocomplete stays attached to input
+    };
   }, [showModal]);
-
   useEffect(() => {
     setLoading(true);
     fetch(API.priceNewAll)
@@ -174,8 +141,6 @@ export default function Hero() {
             uniqueBrands.push({ id: key, name: row.brand_name });
           }
         }
-        // Append "Others / Not Listed Above" at the end of the brand list
-        uniqueBrands.push({ id: OTHERS_VALUE, name: OTHERS_LABEL });
         setBrands(uniqueBrands);
       })
       .catch(console.error)
@@ -192,25 +157,6 @@ export default function Hero() {
       return;
     }
 
-    if (brandId === OTHERS_VALUE) {
-      // Brand isn't listed, but capacity is independent — show every
-      // known capacity value across all brands, plus "Others", and let
-      // the user actually pick instead of auto-locking to "others".
-      const seenAll = new Set<string>();
-      const allCapacities: string[] = [];
-      for (const row of allRows) {
-        const key = String(row.capacity_kva);
-        if (!seenAll.has(key)) {
-          seenAll.add(key);
-          allCapacities.push(key);
-        }
-      }
-      allCapacities.sort((a, b) => Number(a) - Number(b));
-      allCapacities.push(OTHERS_VALUE);
-      setCapacityOptions(allCapacities);
-      return;
-    }
-
     const filtered = allRows.filter((r) => String(r.brand_id) === brandId);
     const seen = new Set<string>();
     const unique: string[] = [];
@@ -222,98 +168,26 @@ export default function Hero() {
       }
     }
     unique.sort((a, b) => Number(a) - Number(b));
-    unique.push(OTHERS_VALUE);
     setCapacityOptions(unique);
   };
 
-  const handleCapacityChange = (value: string) => {
-    setSelectedCapacity(value);
-  };
+  const handleCalculateClick = () => setShowModal(true);
 
-  const goToFormWithUnavailableContext = () => {
-    const sellParams = new URLSearchParams();
-    if (selectedBrand && selectedBrand !== OTHERS_VALUE)
-      sellParams.set("brand_id", selectedBrand);
-    if (selectedCapacity && selectedCapacity !== OTHERS_VALUE)
-      sellParams.set("capacity_kva", selectedCapacity);
-    if (selectedYear) sellParams.set("year", selectedYear);
-    setShowUnavailableModal(false);
-    router.push(`/sell?${sellParams.toString()}`);
-  };
-
-  const handleCalculateClick = async () => {
-    // Brand or capacity not listed → we already know there's no maintained
-    // price. Skip the API call and go straight to the polite explanation.
-    if (selectedBrand === OTHERS_VALUE || selectedCapacity === OTHERS_VALUE) {
-      setShowUnavailableModal(true);
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams({
-        brand_id: selectedBrand,
-        capacity_kva: selectedCapacity,
-        year: selectedYear,
-      });
-      const res = await fetch(`${API.checkAvailability}?${params.toString()}`);
-      const data = await res.json();
-
-      if (data.status && data.exists) {
-        // Price IS maintained → collect lead details, then proceed to the
-        // price/valuation flow (handleProceed → /machinery-valuation).
-        setShowModal(true);
-      } else {
-        // Price not maintained for this exact combo → explain why before
-        // sending them to the form, instead of a silent redirect.
-        setShowUnavailableModal(true);
-      }
-    } catch (err) {
-      console.error(err);
-      // Network/API failure: still guide the user forward with context
-      // rather than leaving the button appearing to do nothing.
-      setShowUnavailableModal(true);
-    }
-  };
-
-  const handleProceed = async () => {
-    if (!name.trim() || !phone.trim()) return;
-    setSubmitting(true);
-    try {
-      const fd = new FormData();
-      fd.append("name", name);
-      fd.append("phone", phone);
-      fd.append("location", location);
-      fd.append("machine_type_id", "1");
-      fd.append("brand_id", selectedBrand);
-      fd.append("capacity_kva", selectedCapacity);
-      if (selectedYear) fd.append("make_year", selectedYear);
-
-      const res = await fetch(API.valuationSubmit, {
-        method: "POST",
-        body: fd,
-      });
-      const data = await res.json();
-
-      if (data.status) {
-        const params = new URLSearchParams();
-        params.set("id", String(data.id));
-        params.set("brand_id", selectedBrand);
-        params.set("capacity_kva", selectedCapacity);
-        params.set("year", selectedYear);
-        params.set("name", name);
-        params.set("phone", phone);
-        params.set("location", location);
-        router.push(`/machinery-valuation?${params.toString()}`);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
+  const handleProceed = () => {
+    const params = new URLSearchParams();
+    params.set("machine_type_id", "1");
+    if (selectedBrand)    params.set("brand_id",     selectedBrand);
+    if (selectedCapacity) params.set("capacity_kva", selectedCapacity);
+    if (selectedYear)     params.set("year",          selectedYear);
+    if (name)             params.set("name",           name);
+    if (phone)            params.set("phone",          phone);
+    if (location)         params.set("location",       location);
+    router.push(`/machinery-valuation?${params.toString()}`);
   };
 
   return (
     <section className="relative min-h-[85vh] flex items-center overflow-hidden">
+
       {/* BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <div className="hero-slider">
@@ -333,11 +207,13 @@ export default function Hero() {
 
       <div className="absolute inset-0 bg-black/60 z-[1]" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-14  md:py-20 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 w-full">
         <div className="flex flex-col lg:flex-row gap-16 items-center">
+
           {/* CALCULATOR CARD */}
-          <div className="order-2 lg:order-1 lg:w-[40%] w-full flex-shrink-0">
+          <div className="lg:w-[30%] w-full flex-shrink-0">
             <div className="bg-white rounded-3xl shadow-2xl p-6 border border-white/20 backdrop-blur-sm">
+
               <h3 className="font-heading text-2xl font-bold text-[#1a1a1a] mb-2">
                 Price Calculator
               </h3>
@@ -346,63 +222,57 @@ export default function Hero() {
               </p>
 
               <div className="space-y-4">
+
                 {/* BRAND */}
                 <select
                   value={selectedBrand}
                   onChange={(e) => handleBrandChange(e.target.value)}
                   disabled={loading}
-                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
                 >
                   <option value="">
                     {loading ? "Loading…" : "Select Brand"}
                   </option>
                   {brands.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
 
                 {/* CAPACITY */}
-              <select
-  value={selectedCapacity}
-  onChange={(e) => handleCapacityChange(e.target.value)}
-  disabled={!selectedBrand}
-  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
->
+                <select
+                  value={selectedCapacity}
+                  onChange={(e) => setSelectedCapacity(e.target.value)}
+                  disabled={!selectedBrand}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
+                >
                   <option value="">Select Capacity (KVA)</option>
                   {capacityOptions.map((kva) => (
-                    <option key={kva} value={kva}>
-                      {kva === OTHERS_VALUE ? OTHERS_LABEL : `${kva} KVA`}
-                    </option>
+                    <option key={kva} value={kva}>{kva} KVA</option>
                   ))}
                 </select>
+
+                {/* YEAR */}
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  disabled={!selectedCapacity || loadingYears}
-                  className="w-full border lg:h-14 border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-90"
+                  disabled={!selectedCapacity}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:border-[#f07020] outline-none bg-white disabled:opacity-50"
                 >
-                  <option value="">
-                    {loadingYears ? "Loading…" : "Select Year"}
-                  </option>
-                  {yearOptions.map((y) => (
-                    <option key={y.id} value={y.name}>
-                      {y.name}
-                    </option>
+                  <option value="">Select Year</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
 
                 {/* BUTTON */}
                 <button
                   onClick={handleCalculateClick}
-                  disabled={
-                    !selectedBrand || !selectedCapacity || !selectedYear
-                  }
-                  className="w-full bg-[#f07020] lg:mt-4 text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!selectedBrand || !selectedCapacity || !selectedYear}
+                  className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Calculate Price
                 </button>
+
               </div>
 
               <Link
@@ -411,19 +281,21 @@ export default function Hero() {
               >
                 Learn How It Works →
               </Link>
+
             </div>
           </div>
 
           {/* HERO CONTENT */}
-          <div className="order-1 lg:order-2 lg:w-[60%] w-full relative min-h-[420px]">
+          <div className="lg:w-[70%] w-full relative min-h-[420px]">
             <div className="content-slider">
               {heroSlides.map((slide, index) => (
                 <div key={index} className="content-slide">
+
                   <span className="inline-block bg-[#f07020] text-white text-sm px-4 py-2 rounded-full mb-5">
                     {slide.badge}
                   </span>
 
-                  <h1 className="font-heading text-2xl md:text-5xl text-white font-bold leading-tight max-w-3xl mb-6">
+                  <h1 className="font-heading text-4xl md:text-5xl text-white font-bold leading-tight max-w-3xl mb-6">
                     {slide.title}
                   </h1>
 
@@ -431,7 +303,7 @@ export default function Hero() {
                     {slide.desc}
                   </p>
 
-                  <div className="grid sm:grid-cols-2 text-white gap-2 md:gap-4 mb-8 text-sm max-w-2xl">
+                  <div className="grid sm:grid-cols-2 text-white gap-4 mb-8 text-sm max-w-2xl">
                     {slide.points.map((item) => (
                       <div key={item} className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-[#f07020]" />
@@ -454,17 +326,20 @@ export default function Hero() {
                       Learn More
                     </Link>
                   </div>
+
                 </div>
               ))}
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* LEAD MODAL — price is maintained, collect details before valuation */}
+      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
           <div className="bg-white w-full max-w-md rounded-3xl p-8 relative shadow-2xl">
+
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-black text-xl"
@@ -513,103 +388,34 @@ export default function Hero() {
               </div>
               <button
                 onClick={handleProceed}
-                disabled={submitting || !name.trim() || phone.length < 10}
-                className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition"
               >
-                {submitting ? "Saving..." : "Proceed"}
+                Proceed
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* UNAVAILABLE-PRICE MODAL — no maintained price for this combo */}
-      {showUnavailableModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
-          <div className="bg-white w-full max-w-md rounded-3xl p-8 relative shadow-2xl text-center">
-            <button
-              onClick={() => setShowUnavailableModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-black text-xl"
-            >
-              ×
-            </button>
-
-            <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-[#f07020] text-2xl font-bold">
-              !
-            </div>
-
-            <h3 className="text-xl font-bold text-[#1a1a1a] mb-3">
-              Instant Price Not Available
-            </h3>
-            <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-              Sorry, for this unlisted category the instant quote price
-              isn't maintained by our administrator — but that doesn't mean
-              you can't sell it to us! Kindly fill in the form so that we
-              can provide you an on-spot valuation.
-            </p>
-
-            <button
-              onClick={goToFormWithUnavailableContext}
-              className="w-full bg-[#f07020] text-white py-3 rounded-xl font-medium hover:bg-[#d85f14] transition"
-            >
-              Fill the Form
-            </button>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .hero-slider,
-        .content-slider {
-          position: relative;
-          width: 100%;
-          height: 100%;
-        }
-        .slide,
-        .content-slide {
-          position: absolute;
-          inset: 0;
-          opacity: 0;
-          animation: fadeSlider 12s infinite;
-        }
-        .slide:nth-child(1),
-        .content-slide:nth-child(1) {
-          animation-delay: 0s;
-        }
-        .slide:nth-child(2),
-        .content-slide:nth-child(2) {
-          animation-delay: 4s;
-        }
-        .slide:nth-child(3),
-        .content-slide:nth-child(3) {
-          animation-delay: 8s;
-        }
+        .hero-slider, .content-slider { position: relative; width: 100%; height: 100%; }
+        .slide, .content-slide { position: absolute; inset: 0; opacity: 0; animation: fadeSlider 12s infinite; }
+        .slide:nth-child(1), .content-slide:nth-child(1) { animation-delay: 0s; }
+        .slide:nth-child(2), .content-slide:nth-child(2) { animation-delay: 4s; }
+        .slide:nth-child(3), .content-slide:nth-child(3) { animation-delay: 8s; }
         @keyframes fadeSlider {
-          0% {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          8% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          30% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          38% {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
+          0%   { opacity: 0; transform: translateY(20px); }
+          8%   { opacity: 1; transform: translateY(0); }
+          30%  { opacity: 1; transform: translateY(0); }
+          38%  { opacity: 0; transform: translateY(-20px); }
+          100% { opacity: 0; transform: translateY(-20px); }
         }
+        /* Google Places dropdown styling */
         .pac-container {
           border-radius: 12px;
           border: 1px solid #e5e7eb;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
           font-family: inherit;
           font-size: 14px;
           margin-top: 4px;
@@ -620,20 +426,12 @@ export default function Hero() {
           cursor: pointer;
           border-top: 1px solid #f3f4f6;
         }
-        .pac-item:hover,
-        .pac-item-selected {
+        .pac-item:hover, .pac-item-selected {
           background: #fff5ef;
         }
-        .pac-item-query {
-          color: #1a1a1a;
-          font-weight: 500;
-        }
-        .pac-matched {
-          color: #f07020;
-        }
-        .pac-icon {
-          display: none;
-        }
+        .pac-item-query { color: #1a1a1a; font-weight: 500; }
+        .pac-matched { color: #f07020; }
+        .pac-icon { display: none; }
       `}</style>
     </section>
   );
